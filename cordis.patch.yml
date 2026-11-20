@@ -1,4 +1,4 @@
-# dsh-agent-presets v0.0.1 — DevTeam-20 + WishCoder 合并发布包
+# dsh-wishcoder-devteam v0.0.1 — DevTeam-20 + WishCoder 合并发布包
 #
 # 本文件由 devteam-agent/cordis.patch.yml（v4→v22 全部注释原样保留）与
 # wishcoder-agent/cordis.patch.yml（v1）文本合并而来：顶层仍是单个 `- insert:`，
@@ -276,7 +276,7 @@
               # 目录监听会在技能目录变动时整条重发目录消息 = 缓存断点；技能很少改，关掉。
               watch: false
               customSkillDirs:
-                - 'D:\agent\dsh-agent-presets\skills'
+                - 'D:\agent\dsh-wishcoder-devteam\skills'
           - id: tool-skill
             name: '@deepseek-ai/dsh-tool-skill'
             config:
@@ -439,7 +439,7 @@
               includeDefaultRoots: true
               watch: false
               customSkillDirs:
-                - 'D:\agent\dsh-agent-presets\skills'
+                - 'D:\agent\dsh-wishcoder-devteam\skills'
           - id: tool-skill
             name: '@deepseek-ai/dsh-tool-skill'
             config:

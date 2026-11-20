@@ -1,8 +1,8 @@
-# dsh-agent-presets · v0.0.1
+# dsh-wishcoder-devteam · v0.0.1
 
 > **DevTeam-20 + WishCoder 合并发布包。** 一个 DSH bundle，两个独立预设：一个资深融合开发团队，一个许愿式交付闭环。装一次，两个都能选。
 
-- 包名：`dsh-agent-presets`
+- 包名：`dsh-wishcoder-devteam`
 - 版本：`0.0.1`
 - 类型：DSH agent preset bundle（`dsh.bundle.patch` → `cordis.patch.yml`）
 - 许可：MIT
@@ -30,7 +30,7 @@ DSH（DeepSeek Harness）的预设（preset）决定一个会话的：persona、
 ## 目录
 
 ```
-dsh-agent-presets\
+dsh-wishcoder-devteam\
 ├─ package.json         # name/version 0.0.1 + dsh.bundle.patch → cordis.patch.yml
 ├─ cordis.patch.yml     # 唯一入口：一个 - insert:，两个 preset 行（devteam 20 / wishcoder 21）
 ├─ validate.cjs         # 自检门禁（改完必跑）
@@ -53,8 +53,8 @@ dsh-agent-presets\
 
 ```jsonc
 {
-  "dependencies": { "dsh-agent-presets": "file:D:\\agent\\dsh-agent-presets" },
-  "dsh": { "profile": { "bundles": ["dsh-agent-presets"] } }
+  "dependencies": { "dsh-wishcoder-devteam": "file:D:\\agent\\dsh-wishcoder-devteam" },
+  "dsh": { "profile": { "bundles": ["dsh-wishcoder-devteam"] } }
 }
 ```
 
@@ -66,13 +66,13 @@ dsh-agent-presets\
 
 ```yaml
 customSkillDirs:
-  - 'D:\agent\dsh-agent-presets\skills'
+  - 'D:\agent\dsh-wishcoder-devteam\skills'
 ```
 
 换机器/换目录就改这两处，然后跑门禁：
 
 ```
-node D:\agent\dsh-agent-presets\validate.cjs
+node D:\agent\dsh-wishcoder-devteam\validate.cjs
 ```
 
 ### 3. 选预设
@@ -140,7 +140,7 @@ profile `package.json` 里删掉那两行 → 重启。两个预设一起消失�
 ## 自检门禁
 
 ```
-node D:\agent\dsh-agent-presets\validate.cjs
+node D:\agent\dsh-wishcoder-devteam\validate.cjs
 ```
 
 覆盖：包清单与版本 → 顶层只有一个 `- insert:` 且恰好两个 preset 行（id/order 唯一）→ 无内核级服务行 → persona 长度区间与关键词 → `customSkillDirs` 指向本包 → 每个技能有 `SKILL.md` 且 front-matter `name` 与目录一致 → `roles.json` 双向登记（登记了必须存在，存在必须登记）→ 无 U+FFFD/零宽字符/BOM。

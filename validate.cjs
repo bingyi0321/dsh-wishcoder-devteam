@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * dsh-agent-presets 自检门禁（CommonJS：包是 type=module）。
- * 改完任何文件后跑：  node D:\agent\dsh-agent-presets\validate.cjs
+ * dsh-wishcoder-devteam 自检门禁（CommonJS：包是 type=module）。
+ * 改完任何文件后跑：  node D:\agent\dsh-wishcoder-devteam\validate.cjs
  * 退出 0 = 通过；1 = 失败（逐条打到 stderr）。
  *
  * 覆盖两个预设（devteam order 20 / wishcoder order 21）合并后的全部硬约束：
@@ -23,7 +23,7 @@ const { createRequire } = require('node:module');
 
 const ROOT = __dirname;
 const PROFILE = 'C:/Users/Administrator/.dsh/profiles/desktop';
-const PKG_NAME = 'dsh-agent-presets';
+const PKG_NAME = 'dsh-wishcoder-devteam';
 const VERSION = '0.0.1';
 const SKILLS_ROOT = path.join(ROOT, 'skills');
 
@@ -175,7 +175,7 @@ for (const [id, spec] of Object.entries(PRESETS)) {
     continue;
   }
   const dirs = row.config?.customSkillDirs ?? [];
-  if (!dirs.includes('D:\\' + 'agent\\dsh-agent-presets\\skills') && !dirs.some((d) => path.resolve(d) === expectedDir))
+  if (!dirs.includes('D:\\' + 'agent\\dsh-wishcoder-devteam\\skills') && !dirs.some((d) => path.resolve(d) === expectedDir))
     fail(`${id}: customSkillDirs 未指向本包 skills\\（实为 ${JSON.stringify(dirs)}）`);
   if (!fs.existsSync(expectedDir)) fail(`${id}: 技能根目录不存在 ${expectedDir}`);
   if ((row.config?.includeDefaultRoots ?? true) !== spec.includeDefaultRoots)
