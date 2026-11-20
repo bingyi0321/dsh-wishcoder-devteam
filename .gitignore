@@ -1,0 +1,9 @@
+# 运行时杂物
+*.log
+node_modules/
+.DS_Store
+Thumbs.db
+
+# 本地覆盖
+*.local.yml
+.env

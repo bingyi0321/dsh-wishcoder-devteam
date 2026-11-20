@@ -1,0 +1,20 @@
+{
+  "name": "dsh-agent-presets",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "DevTeam-20 + WishCoder merged DSH agent presets: one bundle, two presets — a fused 20-year senior engineering team (devteam) and a wish-style delivery loop (wishcoder).",
+  "keywords": [
+    "dsh",
+    "agent-preset",
+    "devteam",
+    "wishcoder",
+    "cordis"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

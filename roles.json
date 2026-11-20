@@ -1,0 +1,55 @@
+{
+  "$comment": "角色注册表（硬门禁）。每个 skills/<name>/ 都必须有一条 active 条目，且 approvedBy 必须是 user —— 没有用户明确同意，不许往本预设加角色。由 D:\\agent\\.research\\validate.cjs 校验；流程见 devteam-agent\\ROLES.md。字段：name=角色中文名，skill=技能目录名，addedAt=YYYY-MM-DD，approvedBy=user|lead(仅 draft)，approvalEvidence=用户原话或需求出处，status=active|retired。",
+  "version": 1,
+  "maxSkills": 6,
+  "roles": [
+    {
+      "name": "DevTeam 主流程（需求/规范/拆分/评审）",
+      "skill": "devteam-flow",
+      "addedAt": "2026-10-21",
+      "approvedBy": "user",
+      "approvalEvidence": "v1 起用户要求：需求澄清、契约拆分、并行交付、评审放行",
+      "status": "active"
+    },
+    {
+      "name": "Web 前后端工程师",
+      "skill": "web-platform",
+      "addedAt": "2026-10-21",
+      "approvedBy": "user",
+      "approvalEvidence": "v1 起用户要求：前端页面/后端接口/库表迁移/鉴权性能",
+      "status": "active"
+    },
+    {
+      "name": "Android 应用工程师",
+      "skill": "android-app",
+      "addedAt": "2026-10-21",
+      "approvedBy": "user",
+      "approvalEvidence": "v1 起用户要求：Kotlin/Compose/Gradle/权限/ANR/上架",
+      "status": "active"
+    },
+    {
+      "name": "嵌入式固件工程师",
+      "skill": "embedded-firmware",
+      "addedAt": "2026-10-21",
+      "approvedBy": "user",
+      "approvalEvidence": "v1 起用户要求：MCU bring-up/总线/功耗/OTA",
+      "status": "active"
+    },
+    {
+      "name": "排障与查证工程师",
+      "skill": "debug-research",
+      "addedAt": "2026-10-21",
+      "approvedBy": "user",
+      "approvalEvidence": "v1 起用户要求：报错/偶现/性能劣化定位与文档查证",
+      "status": "active"
+    },
+    {
+      "name": "Windows 桌面控件资深工程师",
+      "skill": "win-desktop",
+      "addedAt": "2026-10-25",
+      "approvedBy": "user",
+      "approvalEvidence": "用户原话：创建一个编写 windows 桌面控件软件的资深开发工程师（cordis.patch.yml v14 记录）",
+      "status": "active"
+    }
+  ]
+}
