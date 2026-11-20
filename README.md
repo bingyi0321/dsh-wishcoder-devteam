@@ -3,7 +3,7 @@
 > 一个 DSH bundle、**一个**预设：`devteam`（DevTeam-20 · 资深融合开发团队），内置「许愿：」模式。
 > 装一次，改代码和「从零做一个东西」走同一个入口，不用在新建会话时二选一。
 
-- 版本：`0.0.101`
+- 版本：`0.0.102`
 - 类型：DSH agent preset bundle（`dsh.bundle.patch` → `cordis.patch.yml`）
 - 许可：MIT
 - 仓库：`github.com/bingyi0321/dsh-wishcoder-devteam`
@@ -98,6 +98,8 @@ profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle �
 
 预期动作：写 SPEC → 写 `scripts/verify.ps1` → 跑红 → 实现 → 跑绿 → 报三行（改动 / 验证 / 残留）。
 不满意就补一句（「圆角要 24px」），它把这条加进验收再跑一遍——**验收是唯一的口径**，不靠自我感觉。
+
+已经聊了很多轮的会话里也能直接许愿：许愿不是预设，是 persona 的一行路由，不用新开会话。区别是这时它得先记**基线**（当前哪些验收是绿的，写进 SPEC），否则「先写验收、确认它红」会一开跑就是绿的——那是假绿，不是做对了。
 
 ### 4.3 带约束许愿（最省返工）
 
@@ -195,7 +197,7 @@ dsh-wishcoder-devteam/
 - 发版三步：改 `package.json` / `validate.cjs` 里的版本 → `CHANGELOG.md` 记「为什么 / 改动 / 已知取舍」 → 跑门禁 → `git tag v0.0.x` 并推送。
 - 宿主装载以**重启**为准：bundle 列表与预设定义在进程启动时读，改完不重启，新建会话仍用旧定义。
 
-当前版本 `0.0.101` 的变更见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本 `0.0.102` 的变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 10. 已知限制与排障
 
