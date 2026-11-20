@@ -4,15 +4,15 @@
  * 改完任何文件后跑：  node D:\agent\dsh-wishcoder-devteam\validate.cjs
  * 退出 0 = 通过；1 = 失败（逐条打到 stderr）。
  *
- * 覆盖两个预设（devteam order 20 / wishcoder order 21）合并后的全部硬约束：
- *   1 包清单与版本（0.0.1）、bundle patch 路径存在
- *   2 顶层只有一个 `- insert:`，里面恰好两个 preset 行（id/name/order 唯一）
+ * 覆盖单入口预设（devteam order 20；原 wishcoder(21) 已折叠为「许愿：」路由）的全部硬约束：
+ *   1 包清单与版本（0.0.101）、bundle patch 路径存在
+ *   2 顶层只有一个 `- insert:`，里面恰好一个 preset 行（id/name/order 唯一）
  *   3 preset 作用域不得出现内核级服务行（permission / permissionPresets）——
  *     会 `service ... has been registered` → 预设组装失败 → 新建会话直接失败
- *   4 persona 非空且长度在各自区间内，五条铁律/硬底线关键词在位
+ *   4 persona 非空且长度在区间内，硬底线与「许愿：」路由关键词在位
  *   5 skill-filesystem.customSkillDirs 指向本包 skills\，目录存在
  *   6 每个必需技能都有 SKILL.md，front-matter name 与目录名一致，正文不为空
- *   7 技能目录不得有未登记项（roles.json 覆盖 devteam 角色，wishcoder 技能另行登记）
+ *   7 技能目录不得有未登记项（roles.json 覆盖 devteam 角色，wish-loop/verify-harness 另行白名单）
  *   8 文本卫生：无 U+FFFD / 零宽字符 / BOM
  */
 'use strict';
@@ -24,7 +24,7 @@ const { createRequire } = require('node:module');
 const ROOT = __dirname;
 const PROFILE = 'C:/Users/Administrator/.dsh/profiles/desktop';
 const PKG_NAME = 'dsh-wishcoder-devteam';
-const VERSION = '0.0.1';
+const VERSION = '0.0.101';
 const SKILLS_ROOT = path.join(ROOT, 'skills');
 
 /** 预设白名单：id → 期望配置 */
@@ -34,22 +34,16 @@ const PRESETS = {
     order: 20,
     personaMin: 500,
     personaMax: 1000,
-    mustSay: ['最小 diff', '底线'],
+    // 「许愿：」路由行在 persona 里，wish 细则在技能正文——两条都查，防止被顺手删掉
+    mustSay: ['最小 diff', '底线', '许愿：', 'wish-loop'],
     skills: ['devteam-flow', 'web-platform', 'android-app', 'embedded-firmware', 'debug-research', 'win-desktop'],
     roleRegistry: true,
     includeDefaultRoots: false,
   },
-  wishcoder: {
-    rowId: 'preset-wishcoder',
-    order: 21,
-    personaMin: 300,
-    personaMax: 720,
-    mustSay: ['不提问', '验收'],
-    skills: ['wish-loop', 'verify-harness'],
-    roleRegistry: false,
-    includeDefaultRoots: true,
-  },
 };
+
+/** 不进 roles.json 的技能：折叠进来的许愿闭环（角色注册表只管 devteam 的 6 个角色） */
+const NON_ROLE_SKILLS = ['wish-loop', 'verify-harness'];
 
 const KERNEL_ROWS = new Set(['permission', 'permissionPresets']);
 const BASE_SVC_ROWS = new Set(['goal', 'goal-round-driver']);
@@ -115,7 +109,7 @@ else {
     if (inserts.length !== 1) fail(`cordis.patch.yml: 顶层应有且只有 1 个 \`- insert:\`，实为 ${inserts.length}`);
     const rows = inserts[0]?.insert ?? [];
     const presetRows = rows.filter((r) => r && r.name === '@deepseek-ai/dsh-agent-preset');
-    if (presetRows.length !== 2) fail(`cordis.patch.yml: preset 行应为 2 个，实为 ${presetRows.length}`);
+    if (presetRows.length !== 1) fail(`cordis.patch.yml: preset 行应为 1 个（单入口），实为 ${presetRows.length}`);
     for (const row of presetRows) {
       const cfg = row.config || {};
       const spec = PRESETS[cfg.id];
@@ -227,15 +221,18 @@ if (roles) {
   for (const name of PRESETS.devteam.skills)
     if (!registered.has(name)) fail(`roles.json: devteam 必需角色 ${name} 未登记为 active`);
   ok(`roles.json: ${registered.size} 个 active 角色 / maxSkills ${roles.maxSkills ?? '(未设)'}`);
-  const stray = skillDirs.filter((d) => !registered.has(d) && !PRESETS.wishcoder.skills.includes(d));
+  const stray = skillDirs.filter((d) => !registered.has(d) && !NON_ROLE_SKILLS.includes(d));
   if (stray.length) fail(`skills\\ 下有未登记技能目录: ${stray.join(', ')}`);
 }
 
-// 必需技能存在性
+// 必需技能存在性（devteam 角色 + 许愿闭环）
 for (const [id, spec] of Object.entries(PRESETS)) {
   for (const name of spec.skills) {
     if (!skillDirs.includes(name)) fail(`${id}: 必需技能 skills/${name} 缺失`);
   }
+}
+for (const name of NON_ROLE_SKILLS) {
+  if (!skillDirs.includes(name)) fail(`许愿闭环: 必需技能 skills/${name} 缺失`);
 }
 
 // ── 输出 ────────────────────────────────────────────────────

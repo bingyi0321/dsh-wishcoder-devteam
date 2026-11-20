@@ -1,158 +1,214 @@
-# dsh-wishcoder-devteam · v0.0.1
+# dsh-wishcoder-devteam
 
-> **DevTeam-20 + WishCoder 合并发布包。** 一个 DSH bundle，两个独立预设：一个资深融合开发团队，一个许愿式交付闭环。装一次，两个都能选。
+> 一个 DSH bundle、**一个**预设：`devteam`（DevTeam-20 · 资深融合开发团队），内置「许愿：」模式。
+> 装一次，改代码和「从零做一个东西」走同一个入口，不用在新建会话时二选一。
 
-- 包名：`dsh-wishcoder-devteam`
-- 版本：`0.0.1`
+- 版本：`0.0.101`
 - 类型：DSH agent preset bundle（`dsh.bundle.patch` → `cordis.patch.yml`）
 - 许可：MIT
+- 仓库：`github.com/bingyi0321/dsh-wishcoder-devteam`
 
 ---
 
-## 这是什么
+## 1. 这是什么
 
-DSH（DeepSeek Harness）的预设（preset）决定一个会话的：persona、挂哪些工具、压哪些行、用哪些技能。本项目把原来分开发布的两个预设合并成一个安装单元：
+DSH（DeepSeek Harness）的预设（preset）决定一个会话的 persona、挂哪些工具、怎么压缩上下文、能加载哪些技能。本包只提供一个预设：
 
 | preset id | 显示名 | order | 取向 | 技能 |
 | --- | --- | --- | --- | --- |
-| `devteam` | DevTeam-20 · 资深融合开发团队 | 20 | 最短路径改现有代码：最小 diff、最少 token、最快出结果 | `devteam-flow` `web-platform` `android-app` `embedded-firmware` `debug-research` `win-desktop` |
-| `wishcoder` | WishCoder · 许愿式交付 | 21 | 一句话即规格：自己拍默认值、先写可执行验收、循环到全绿才交付 | `wish-loop` `verify-harness` |
+| `devteam`（`cordis.patch.yml` 里的行 id 是 `preset-devteam`） | DevTeam-20 · 资深融合开发团队 | 20 | 改现有代码走最短路径（最小 diff、最少 token、最快出结果）；许愿式任务走「许愿：」模式 | 8 个，见 §5 |
 
-两者是**并列**关系，不是二选一的继承：选会话时挑一个即可，互不影响。合并只做三件事——同一个包、同一份 `skills\`、一份自检门禁；两个预设的 persona、工具行、压缩参数**各自保持原样**。
+同一份 persona 里用一行路由把两种跑法分开：
 
-## 为什么能合
+- **日常改代码**（默认）：`grep -n` 定位唯一最小改动点 → 改 → 跑一条自测 → 报「改了哪个文件 + 一行理由」。
+- **许愿**（用户以「许愿：」开头，或要整页/整功能/从零做）：加载 `wish-loop`，走「不提问 → 先写会失败的验收 → 全绿才交付 → 三行收尾（改动/验证/残留）」；此时 persona 里「>3 文件先问是否扩大范围」**不适用**。
 
-1. **技能不冲突**：8 个技能目录名互不重复，可以共用一个 `skills\` 根；`skill-filesystem.customSkillDirs` 各预设各写一行，指同一个目录。
-2. **不共享内核级服务行**：`permission` / `permissionPresets` 是内核级服务，写进 preset 作用域会得到
-   `Error: service "permissionPresets" has been registered at <PermissionPresetService>` → **预设组装失败 → 新建会话直接失败**。本包两个预设都不含这两行，权限档位一律由 profile 层决定。
-3. **persona 各留各的**：devteam 要"不解释、只报改动"，wishcoder 要"先写会失败的检查、全绿才算完"——两种语气塞进一个 persona 会互相打架，所以保持两个预设。
+本包的前身是两个并列预设（`devteam` + `wishcoder`，v0.0.1）。第二个入口在发布后 6.5 小时的 385 个会话里被选了 **0 次**，且两段 persona 在同一触发条件下要求相反动作，因此 v0.0.101 起折叠成一个入口——**只合入口，不合 persona**。
 
-## 目录
+## 2. 为什么是单入口
 
-```
-dsh-wishcoder-devteam\
-├─ package.json         # name/version 0.0.1 + dsh.bundle.patch → cordis.patch.yml
-├─ cordis.patch.yml     # 唯一入口：一个 - insert:，两个 preset 行（devteam 20 / wishcoder 21）
-├─ validate.cjs         # 自检门禁（改完必跑）
-├─ roles.json           # DevTeam 角色注册表（6 个 active 角色，硬门禁）
-├─ skills\              # 8 个技能，两个预设共用
-│  ├─ devteam-flow\  web-platform\  android-app\
-│  ├─ embedded-firmware\  debug-research\  win-desktop\
-│  └─ wish-loop\  verify-harness\
-├─ CHANGELOG.md
-└─ README.md
-```
+1. **没被选用**：全量扫 385 个会话头的 `agentPreset` → devteam 246（63.9%）/ standard 92 / optimizer 29 / cordis 10 / miniprogram 6 / (none) 2 / **wishcoder 0**。
+2. **不能真合并**：两套规则在「>3 文件或 >50 行」上动作相反（`先问「是否确认扩大改动范围？」` vs `先落 SPEC 再动，不提问`）。硬塞进一段会重演已知的自相矛盾缺陷。
+3. **合并省不到 token**：未选中的预设不组装、不进请求，两个定义并存对每请求成本为 0。真实成本只有「建会话时二选一、选错只能重开」——预设是**会话级绑定**，中途换不了。
+4. 所以只把**选择面**收成一个：许愿能力由 `wish-loop` / `verify-harness` 两个技能承载（技能正文不进前缀缓存，随改随生效），触发词写在 persona，规则细节留在技能里。
 
-`cordis.patch.yml` 里保留了合并前两份源文件的**全部文件头注释**（devteam 的 v4→v22 改动理由与实测数据、wishcoder 的设计取向），出问题时先读那里。
+取证与三段对比：`D:\agent\.research\preset-merge-decision-2026-11-20.md`。
 
-## 安装
+## 3. 安装
 
-### 1. 放进 profile 的 bundle 列表
+### 3.1 放进 profile 的 bundle 列表
 
-在 DSH profile（如 `C:\Users\Administrator\.dsh\profiles\desktop`）的 `package.json` 里两处各加一行：
+在 DSH profile（例如 `C:\Users\Administrator\.dsh\profiles\desktop`）的 `package.json` 里两处各加一行：
 
 ```jsonc
 {
-  "dependencies": { "dsh-wishcoder-devteam": "file:D:\\agent\\dsh-wishcoder-devteam" },
+  "dependencies": { "dsh-wishcoder-devteam": "link:D:\\agent\\dsh-wishcoder-devteam" },
   "dsh": { "profile": { "bundles": ["dsh-wishcoder-devteam"] } }
 }
 ```
 
-改完**重启 DSH**（bundle 重新组装预设时才生效）。
+改完**重启 DSH**。"什么算生效"的标准是：新建会话的会话头里 `agentPreset` 是 `devteam`。
 
-### 2. 确认技能目录路径
+### 3.2 确认技能目录
 
-`cordis.patch.yml` 里两处 `customSkillDirs` 是**绝对路径**，默认写死为本机安装位置：
+`cordis.patch.yml` 里 `customSkillDirs` 是绝对路径，默认指向本机安装位置：
 
 ```yaml
 customSkillDirs:
   - 'D:\agent\dsh-wishcoder-devteam\skills'
 ```
 
-换机器/换目录就改这两处，然后跑门禁：
+换机器/换目录只改这一处，然后跑门禁（§7）：
 
 ```
 node D:\agent\dsh-wishcoder-devteam\validate.cjs
 ```
 
-### 3. 选预设
+### 3.3 选预设
 
-- **单个会话**：新建会话 → 预设选择器里选「DevTeam-20 · 资深融合开发团队」或「WishCoder · 许愿式交付」。
-- **设为默认**：设置 → 通用 → 默认预设（或 profile 层 `agent-preset-registry.default: devteam|wishcoder`）。
-  注意 `agent-preset-registry.config` 是整段替换不是深合并，改 `default` 时要把 `selectedDefault` 一起保留。
+- **单个会话**：新建会话 → 预设选择器选「DevTeam-20 · 资深融合开发团队」。
+- **设为默认**：设置 → 通用 → 默认预设；或 profile 层 `agent-preset-registry.default` / `selectedDefault`。
+  注意 `agent-preset-registry.config` 是整段替换、不是深合并——改 `selectedDefault` 时要把 `default` 一起保留。
 
-### 卸载
+### 3.4 卸载
 
-profile `package.json` 里删掉那两行 → 重启。两个预设一起消失，因为它们同属一个 bundle。
+profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle 一起消失，不写别的目录。
 
-## 怎么用
+## 4. 怎么用
 
-### DevTeam-20（`devteam`）
-
-默认姿势是"直接改"，只有在三种明确触发下才走完整流程（新页面/弹窗、契约变更、>3 文件或 >50 行）。
+### 4.1 日常改代码（默认模式）
 
 ```
 把这个接口的分页参数从 page 改成 cursor，别动其他调用点。
 ```
 
-它该做的：`grep -n` 定位唯一最小改动点 → 改 → 跑一条自测 → 报「改了哪个文件 + 一行理由」。
+预期动作：定位唯一最小改动点 → 改 → 一条自测 → 一句「改了哪个文件 + 为什么」。
 
 ```
 重构支付模块，把三个回调合成一个状态机。
 ```
 
-跨文件的活它会走 `devteam-flow`：需求澄清 → 契约拆分 → 并行实现 → 评审放行，并用 `subagent` 扇出写域不重叠的块。
+跨文件的活走 `devteam-flow`：需求澄清 → 契约拆分 → 并行实现 → 评审放行；写域不重叠的块用子代理扇出。
 
-### WishCoder（`wishcoder`）
-
-```
-做个能把手机截图批量裁成 1080x1920 并加圆角的小工具，双击能跑。
-```
-
-它该做的：写 SPEC → 写 `scripts/verify.ps1` → 跑红 → 实现 → 跑绿 → 报三行（改动 / 验证 / 残留）。
-不满意的点直接说「圆角要 24px」，它把这条加进验收再跑一遍。
-
-带约束许愿（省一轮返工）：
+### 4.2 许愿（加前缀）
 
 ```
-愿望：<一句话>
+许愿：做个能把手机截图批量裁成 1080x1920 并加圆角的小工具，双击能跑。
+```
+
+预期动作：写 SPEC → 写 `scripts/verify.ps1` → 跑红 → 实现 → 跑绿 → 报三行（改动 / 验证 / 残留）。
+不满意就补一句（「圆角要 24px」），它把这条加进验收再跑一遍——**验收是唯一的口径**，不靠自我感觉。
+
+### 4.3 带约束许愿（最省返工）
+
+```
+许愿：<一句话说清要做什么>
 验收：<怎么算做对了，能给命令最好>
-不许动：<目录/接口/依赖>
+不许动：<目录 / 接口 / 依赖>
 预算：<几轮内、别超多少改动>
 ```
 
-## 两个预设各自的关键约定
+### 4.4 触发词
 
-**DevTeam-20**（persona 865 字符）
+| 说法 | 进哪个模式 |
+| --- | --- |
+| 「改一下 / 修一下 / 加个字段 / 怎么报错了」 | 日常改（最小 diff） |
+| 「许愿：…」 | 许愿（`wish-loop`） |
+| 「做个…/从零/整页/整功能/端到端」 | 许愿（persona 路由行；拿不准就自己加「许愿：」，最省事） |
+| 「这个文件重构一下」 | `devteam-flow`（跨文件编排） |
 
-- 输出：只报改动文件 + 一行理由（≤10 字），不解释不复述。
-- 范围：禁整文件重写与无关格式化；>3 文件或 >50 行先问「是否确认扩大改动范围」。
-- 步数：同一步并发 2~4 个 `read`/`grep`/`pwsh`；`grep -n` 先定位再局部读。
-- 记忆：`MEMORY.md` → 项目 `CODE-MAP.md`（代码地图）/ `NOTES.md`，先 grep 再读。
-- 新角色：往 `skills\` 加目录必须先在 `roles.json` 登记（`approvedBy: user`），否则门禁失败。
+## 5. 技能（8 个）
 
-**WishCoder**（persona 720 字符）
+`skills/` 下 8 个目录，一次性全部可发现（`includeDefaultRoots: false`，只有本包的技能）：
 
-- 五条铁律：不提问（只有三红线）/ 验收先行 / 全绿才算完成 / 同一失败三振换法（>40 步或 >15 min 未见绿就停手交状态）/ 交付前清理过程文件。
-- 判据资产留（`scripts\verify.ps1`、`.wish\<slug>.md`），纯过程件删；删完必须重跑一次验收。
-- 子代理：≥2 块写域不重叠才派；中断先 `send_message` 续跑不重派；子代理自报绿不算绿，合并后自己跑总验收。
+| 技能 | 什么时候用 |
+| --- | --- |
+| `devteam-flow` | 多文件改动、重构、需求→契约→并行实现→评审 |
+| `web-platform` | 前端/Node 服务：路由、状态、构建、接口联调 |
+| `android-app` | 改安卓工程、构建、真机验证（adb/logcat/uidump） |
+| `embedded-firmware` | 固件、串口、板级调试 |
+| `debug-research` | 现象→假设→最小复现的排障，别盲调 |
+| `win-desktop` | Windows 桌面程序、注册表、服务、打包 |
+| `wish-loop` | 许愿闭环：验收先行、三振换法、交付前三行 |
+| `verify-harness` | 写可执行的验收脚本（`scripts/verify.ps1`），全绿判定 |
 
-## 自检门禁
+前 6 个是**开发角色**（进 `roles.json` 注册表，新增须批准登记）；`wish-loop` / `verify-harness` 是**许愿闭环**，走 `validate.cjs` 的 `NON_ROLE_SKILLS` 白名单，不占角色名额。
+
+## 6. 预设置里挂了什么（18 行）
+
+| # | 行 | 作用 |
+| --- | --- | --- |
+| 1 | `persona` | 1000 字符的团队意志（输出/范围/许愿/验收/底线/步数/改动/验证/环境/记忆/成本/技能） |
+| 2 | `agent-instructions` | 注入工作区 `AGENTS.md`（限字节，避免把大文件塞进前缀） |
+| 3 | `time-context` | 当前时间 |
+| 4–5 | `tool-bash` / `tool-pwsh` | shell；本机只有 `powershell.exe` 5.1，没有 `pwsh` |
+| 6–7 | `tool-fs` / `tool-fs-search` | 读写与 `grep`/`glob`（限额收紧，防止一次 `--full` 灌爆上下文） |
+| 8 | `repeat-tool-reminder` | 同一调用重复时提醒换参数 |
+| 9 | `tool-jobs` | 后台任务 |
+| 10 | `skill-filesystem` | 技能根：本包 `skills/`，`watch: false`（技能改动不冲前缀缓存） |
+| 11 | `tool-skill` | 加载技能正文 |
+| 12–14 | `planning` / `compaction` / `delegation` | 计划、压缩、子代理（含深度上限） |
+| 15 | `tool-ask-user` | 问用户 |
+| 16 | `tool-todo` | 待办板 |
+| 17 | `tool-web` | **`disabled: true`**（无 `DEEPSEEK_API_KEY` 时联网必失败；要用先配 key 再删那行 disabled） |
+| 18 | `present` | 交付文件（图片/Office/文档卡片） |
+
+**不声明** `permission` / `permissionPresets`：那是内核级服务，preset 作用域再挂一次会让预设组装失败、新会话直接建不出来（历史事故，见 `cordis.patch.yml` 文件头注释）。
+
+## 7. 自检门禁
 
 ```
 node D:\agent\dsh-wishcoder-devteam\validate.cjs
 ```
 
-覆盖：包清单与版本 → 顶层只有一个 `- insert:` 且恰好两个 preset 行（id/order 唯一）→ 无内核级服务行 → persona 长度区间与关键词 → `customSkillDirs` 指向本包 → 每个技能有 `SKILL.md` 且 front-matter `name` 与目录一致 → `roles.json` 双向登记（登记了必须存在，存在必须登记）→ 无 U+FFFD/零宽字符/BOM。
+覆盖：
 
-退出 0 = 通过，1 = 失败（逐条打到 stderr）。**改完任何文件都要跑。**
+1. `package.json` 可解析、版本与 bundle 声明一致；
+2. 顶层**只有一个** `- insert:`、**恰好一个** preset 行、单 preset 18 插件行、order 无碰撞；
+3. 无内核级服务行（`permission` / `permissionPresets`）；
+4. persona 500~1000 字符且含「最小 diff / 底线 / 许愿： / wish-loop」；
+5. `customSkillDirs` 指向本包、每个技能有 `SKILL.md` 且 front-matter `name` 与目录名一致；
+6. `roles.json` 与 `skills/` 双向登记（`active` 角色全在、技能不 stray、许愿技能走白名单）；
+7. 文本卫生：无 U+FFFD、无零宽字符、无 BOM。
 
-## 版本
+退出 `0` = 通过，`1` = 失败（逐条打到 stderr）。**改完任何文件都要跑。**
 
-`0.0.1` 是首次合并发布：两个预设均可独立工作，合并层只做了包结构与技能根的统一。后续改动记 `CHANGELOG.md`。
+## 8. 目录
 
-## 已知限制
+```
+dsh-wishcoder-devteam/
+├─ package.json      # name/version + dsh.bundle.patch
+├─ cordis.patch.yml  # 唯一入口：一个 - insert:，一个 preset 行（devteam order 20）
+├─ validate.cjs      # 门禁
+├─ roles.json        # 开发角色注册表（6 个 active，maxSkills 6）
+├─ skills/           # 8 个技能
+├─ CHANGELOG.md
+├─ LICENSE
+└─ README.md
+```
 
-- 技能目录是绝对路径，跨机器安装需要改 `cordis.patch.yml` 两处（DSH 的 `customSkillDirs` 只吃绝对路径，不认包内相对路径）。
-- 两个预设共用同一个 `skills\` 根：技能**目录名**不能重名，新增技能前先查重。
-- devteam 的 `tool-web` 行默认 `disabled: true`（宿主无 `DEEPSEEK_API_KEY` 时 `web_search` 必失败）。要开搜索：先配 key，再删那一行 `disabled`。
+`cordis.patch.yml` 保留了源文件的全部历史注释（v4→v22 的改动理由与实测数据）。**出问题先读那里**，比读本文档快。
+
+## 9. 版本与发布
+
+- 版本号走 `0.0.x`（tag `v0.0.101`），与仓库 tag 一一对应。
+- 发版三步：改 `package.json` / `validate.cjs` 里的版本 → `CHANGELOG.md` 记「为什么 / 改动 / 已知取舍」 → 跑门禁 → `git tag v0.0.x` 并推送。
+- 宿主装载以**重启**为准：bundle 列表与预设定义在进程启动时读，改完不重启，新建会话仍用旧定义。
+
+当前版本 `0.0.101` 的变更见 [CHANGELOG.md](CHANGELOG.md)。
+
+## 10. 已知限制与排障
+
+| 现象 | 原因 | 处理 |
+| --- | --- | --- |
+| 新建会话失败 / 预设列表里没有 DevTeam | 预设组装报错（多为内核级服务行重复、或 YAML 语法） | 看 `C:\Users\Administrator\.dsh\logs\desktop-next.log` 尾部的 `host.kernel.*` 报错；跑 validate |
+| 技能不出现 | `customSkillDirs` 是绝对路径且指错机器 | 改 §3.2 那一处，重跑 validate，重启 |
+| 许愿模式没被触发 | 没加「许愿：」，或任务描述不含"整页/整功能/从零" | 自己加前缀，最稳 |
+| 宿主的 `office` / `hyperframes` 技能不见了 | `includeDefaultRoots: false`（沿用 devteam，省约 1.2k 字符/请求） | 要文档/视频能力就把该行改 `true` 并跑 validate |
+| persona 改不动了 | 已顶 1000 字符上限 | 先删一条旧规则再加（护栏，不是 bug） |
+| 联网工具报错 | `tool-web` 默认 disabled | 配 `DEEPSEEK_API_KEY` 后删 `disabled: true` 那行 |
+| 老会话报 preset 不存在 | 该会话记录的 `agentPreset` 是已删的 `wishcoder` | 新建会话；实测这类会话数为 0 |
+
+## 11. 许可
+
+MIT，见 [LICENSE](LICENSE)。

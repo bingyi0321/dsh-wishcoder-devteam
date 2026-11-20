@@ -1,17 +1,20 @@
-# dsh-wishcoder-devteam v0.0.1 — DevTeam-20 + WishCoder 合并发布包
+# dsh-wishcoder-devteam v0.0.101 — 单入口（DevTeam-20 + 许愿模式）
 #
-# 本文件由 devteam-agent/cordis.patch.yml（v4→v22 全部注释原样保留）与
-# wishcoder-agent/cordis.patch.yml（v1）文本合并而来：顶层仍是单个 `- insert:`，
-# 里面按 order 排两个预设 —— devteam(20) / wishcoder(21)。
-# 合并只改一处：两个预设的 skill-filesystem.customSkillDirs 从各自的源码目录
-# 改指向本包内统一的 skills\ 目录（7 个技能同名冲突为零，因此可共用一份）。
+# 顶层只有一个 preset 行：devteam（order 20）。v0.0.1 的第二个预设 wishcoder(21)
+# 已折叠掉——它 0.0.1 发布后 6.5 小时内 0 次被选（385 个会话头统计：devteam 246 /
+# standard 92 / optimizer 29 / cordis 10 / miniprogram 6 / wishcoder 0），
+# 依据与对比见 D:\agent\.research\preset-merge-decision-2026-11-20.md。
 #
-# 卸载本 bundle 即移除两个预设；两个预设互相独立，可只启用其中一个。
-# 技能目录是绝对路径：换安装位置需同步改两处 customSkillDirs，然后 node validate.cjs。
+# 折叠方式（只合入口、不合 persona）：
+#   1. 用户只看到 devteam 一个预设；许愿式交付由 persona 的「许愿：」路由行触发，
+#      细则全部在 skills/wish-loop + skills/verify-harness（技能正文不进前缀缓存）。
+#   2. 不把两套规则塞进一段 persona：两者在同触发（>3 文件或 >50 行）下要求相反动作
+#      （devteam「先问是否扩大范围」 vs wishcoder「先落 SPEC 不提问」），硬合并会
+#      重演 .research/opt-wishcoder-2026-11-20.md 的 P0-2 自相矛盾。
+#   3. 许愿模式的低层规则（不提问 + 三个红线开关 / 验收先行 / 全绿 / 三振 / 清理 /
+#      子代理断点续）仍在 skills/wish-loop 正文，persona 只留触发与覆盖。
 #
-# 合并自：
-#   devteam-agent   DevTeam-20 · 资深融合开发团队（order 20）
-#   wishcoder-agent WishCoder · 许愿式交付（order 21）
+# 卸载本 bundle 即移除该预设。技能目录是绝对路径：换安装位置需改 customSkillDirs，然后 node validate.cjs。
 
 # ─────────────────────────────────────────────────────────────
 # 以下两段是两份源文件各自的文件头注释，原样保留（含 v4→v22 的改动理由与实测数据）。
@@ -163,23 +166,15 @@
 # 技能目录是绝对路径，该目录需保持在原位。技能正文（skills/*/SKILL.md）随改随生效且不进前缀缓存；
 # 本文件由 bundle 安装副本加载，实测改完在**同一会话的下一轮**即生效（1e1ae006 10:27 改、10:31 的 turn 4 已用新版），
 # 代价是该轮整条前缀冷启（≈ 当前 input 全量重付）。改 persona 请挑没有在跑会话的时候。
-# @@ wishcoder-agent/cordis.patch.yml 文件头
-# WishCoder — 许愿式交付 DSH 预设（v1，2026-11-20）。
-#
-# 只 insert 一行 preset 声明，不改动任何已有行；卸载 bundle 即移除预设。
-#
-# 设计取向（与 devteam 的差别）：
-#   1. 目标不是"最小 diff 快改"，而是"一句话 → 可运行可验证的交付"：
-#      persona 只留 5 条铁律（不提问 / 验收先行 / 全绿才算完 / 三振换法 / 交付前清理），
-#      完整协议挪到 skills/wish-loop（技能正文不进前缀缓存，随改随生效）。
-#   2. 不挂 goal 四件套：goal / goal-round-driver 在宿主可能是 base 层服务，
-#      preset 作用域重复声明有 `service already registered` 风险（先例见 permissionPresets）。
-#      单轮内 agent loop 本来就会跑到没有工具调用为止，够用。要跨轮自动续跑见 README。
-#   3. 不加 workflow/ptc-runtime：v1 用 subagent 扇出即可，省掉 run_code 的 schema 成本。
-#   4. skill-filesystem 开 includeDefaultRoots（保留宿主 office/hyperframes 等目录）：
-#      许愿对象可能是文档/视频，不只是代码。纯代码用途可改 false 省约 1.2k 字符/请求。
-#   5. 不在本文件声明 permission（内核级服务，会 service has been registered → 预设组装失败），
-#      权限档位一律由 profile 层 defaultPreset 决定。
+# @@ 已折叠：wishcoder-agent/cordis.patch.yml（v1，2026-11-20）
+# 原来这里是第二个 preset 行（wishcoder order 21）。v0.0.101 把它并进 devteam 入口：
+#   - 用户面上的选择项从 2 变 1，persona 只多一行「许愿：」路由；
+#   - wish-loop / verify-harness 两个技能整份保留，触发词命中后加载；
+#   - 折叠后 includeDefaultRoots 沿用 devteam 的 false（省约 1.2k 字符/请求）。
+#     代价：许愿对象若是文档/视频，宿主的 office/hyperframes 技能不在目录里——
+#     需要时把本包该行改 true 并跑 validate（接受那 1.2k）。
+#   - 不挂 goal 四件套、不加 workflow/ptc-runtime、声明里不出现 permission：
+#     三条理由与 v1 相同（base 层服务重复声明会 service already registered；schema 成本）。
 #
 # persona 改动代价：正在跑的会话下一轮整条前缀冷启（≈ 当前 input 全量重付），挑没人跑的时候改。
 - insert:
@@ -188,7 +183,7 @@
       config:
         id: devteam
         name: 'DevTeam-20 · 资深融合开发团队'
-        description: '产品/架构、前端、后端、Android、硬件固件 20 年经验融合：需求→规范→并行实现→验证→排障，交付可运行成果。'
+        description: '改现有代码/修 Bug/小改，或「许愿：」从零做一个东西。20 年经验融合（产品/前端/后端/Android/固件）：最小 diff 直接改；整页整功能走验收先行、全绿才交付。'
         order: 20
         plugins:
           # ⚠ 别在这里（preset 的 plugins 列表里）声明 `- id: permission`：
@@ -207,11 +202,13 @@
               prefix: |
                 DevTeam（产品+前后端+桌面+Android+固件）。唯一目标：最小 diff、最少 token、最快。
 
-                输出：只报改动文件+一行理由（≤10 字）；不解释、不总结、不寒暄、不列计划、不贴代码、不复述工具结果；失败才多一行错误。
+                输出：只报改动文件+一行理由（≤10 字）；不解释、不总结、不寒暄、不列计划、不贴代码、不复述工具结果；失败多一行。
 
                 范围：先定位唯一最小改动点；禁整文件重写、无关格式化、顺手优化；架构只动接口与调用关系；>3 文件或 >50 行 diff 先问「是否确认扩大改动范围？」。
 
-                验收：动手前内部定 A→B，说不清只问一个最短问题。
+                许愿：用户以「许愿：」开头，或要整页/整功能/从零做 → 先 skill wish-loop：不提问（例外：删改数据、账号付费、代价差 10 倍）、先写会失败的验收、全绿才交付、三行收尾（改动/验证/残留）；此时「>3 文件先问」不适用。
+
+                验收：动手前定 A→B，说不清只问一个最短问题。
 
                 升级：新页面/弹窗、契约变更 → 首个 edit 前写 ≤3 行（改什么/怎么验/回滚）。
 
@@ -223,13 +220,13 @@
 
                 验证：攒 3~5 处改动跑一条 v.ps1（构建→启→截→dump 只回一行）；红测先读断言；一次读图；对齐走 uidump。
 
-                环境：AGENTS.md 已注入别重读；JDK 显式设；PATH 无 node/pwsh 用 AGENTS.md 绝对路径。
+                环境：AGENTS.md 已注入别重读；JDK 显式设；PATH 无 node/pwsh 用其绝对路径。
 
                 记忆：MEMORY.md→项目 CODE-MAP.md（代码地图）/NOTES.md，先 grep 再读。
 
                 成本：request/ask；不换模型；折前写 X=可折叠/总input，X<0.5 不压；spawn 须≥2 写域，wait≤60s 别轮询。
 
-                技能：动手前先 skill；devteam-flow（多文件/重构）、web-platform、android-app（改安卓/构建/真机）、embedded-firmware、debug-research、win-desktop；新角色须批准注册。
+                技能：动手前先 skill；devteam-flow（多文件/重构）、web-platform、android-app（改安卓/构建/真机）、embedded-firmware、debug-research、win-desktop、wish-loop/verify-harness（许愿）；新角色须批准注册。
           - id: agent-instructions
             name: '@deepseek-ai/dsh-agent-instructions'
             config:
@@ -368,154 +365,3 @@
               searchMaxQueries: 2
           - id: present
             name: '@deepseek-ai/dsh-tool-present'
-    - id: preset-wishcoder
-      name: '@deepseek-ai/dsh-agent-preset'
-      config:
-        id: wishcoder
-        name: 'WishCoder · 许愿式交付'
-        description: '一句话即规格：自己拍默认值、先写可执行验收、循环到全绿才交付；大活拆成写域不重叠的块，派子代理并行编码，合并后自己跑总验收。适合整功能/整页面/多栈改造这类"说清要什么就行"的活。'
-        order: 21
-        plugins:
-          - id: persona
-            name: '@deepseek-ai/dsh-persona'
-            config:
-              prefix: |
-                WishCoder（许愿式交付）。用户的一句话就是规格：不提问、不请示，一路做到可运行、可验证。
-
-                铁律
-                1 不提问：缺信息按最合理默认值决定，写进 SPEC 的「已假设」。只有三种可问一句：会删改用户已有数据；需要账号或付费；两种做法代价差 10 倍以上且不可兼得。计划模式下按 plan-mode 协议出计划等批准，其余场景不请示。
-                2 验收先行：动手前把「怎么算对」写成可执行检查（退出码/断言），先跑一次确认它是红的。
-                3 只有检查全绿才算完成。没过就说没过、差什么；不许用「已完成/已实现」描述没验过的行为。
-                4 同一失败连错 3 次换方案，并写一句「换法：X→Y」。同一愿望 >40 步或 >15 min 未见绿：停手交三行——已绿 / 红项与卡点 / 下一步选项。
-                5 清理：交付前删本轮自造的过程文件（日志/临时脚本/截图），用户原有文件不动，删后验收仍绿。
-
-                子代理：≥2 块写域不重叠、各有验收命令的活才派 subagent（任务书自包含，看不到本会话）；中断先 send_message 续（2 次不动就接手）；自报绿不算绿，自己跑总验收。
-
-                流程见 wish-loop：愿望→SPEC→验收脚本→最小实现→跑验→定点修→全绿→清理。
-
-                输出：只报改动文件+一行理由；失败多一行错误行；结尾固定三行——改动/验证/残留。
-                范围：最小 diff；禁整文件重写与无关格式化；>3 文件或 >50 行先落 SPEC 再动，不提问。
-                成本：同一步并发 2~4 个调用；先 grep -n 再局部读；成功不重跑；不换模型。
-                技能：动手前先 skill；wish-loop（全流程）、verify-harness（判据与脚本）。
-          - id: agent-instructions
-            name: '@deepseek-ai/dsh-agent-instructions'
-            config:
-              maxBytes: 32768
-              maxSourceBytes: 131072
-          - id: time-context
-            name: '@deepseek-ai/dsh-time-context'
-            config:
-              refreshIntervalMs: 3600000
-          - id: tool-bash
-            name: '@deepseek-ai/dsh-tool-bash'
-            disabled: !!js process.platform === 'win32'
-          - id: tool-pwsh
-            name: '@deepseek-ai/dsh-tool-pwsh'
-            disabled: !!js process.platform !== 'win32'
-          - id: tool-fs
-            name: '@deepseek-ai/dsh-tool-fs'
-            config:
-              readLimit: 800
-              readMaxLineLength: 800
-              readMaxBytes: 24576
-          - id: tool-fs-search
-            name: '@deepseek-ai/dsh-tool-fs-search'
-            config:
-              sampleOverCapGlobResults: false
-              globMaxResults: 40
-              grepMaxMatches: 120
-          - id: repeat-tool-reminder
-            name: '@deepseek-ai/dsh-repeat-tool-reminder'
-            config:
-              thresholds: [2, 4, 7]
-              exclude: [todo_write, job_output, job_list, wait_agent, compress]
-          - id: tool-jobs
-            name: '@deepseek-ai/dsh-tool-jobs'
-          - id: skill-filesystem
-            name: '@deepseek-ai/dsh-skill-filesystem'
-            config:
-              # 保留宿主技能目录（office / hyperframes / dsh-doc 等）：许愿对象不限代码。
-              # 纯代码场景改 false 可省约 1.2k 字符/请求。
-              includeDefaultRoots: true
-              watch: false
-              customSkillDirs:
-                - 'D:\agent\dsh-wishcoder-devteam\skills'
-          - id: tool-skill
-            name: '@deepseek-ai/dsh-tool-skill'
-            config:
-              catalogDescriptionMaxLength: 80
-          - id: planning
-            name: cordis:group
-            group: true
-            isolate:
-              planMode: true
-            config:
-              - id: plan-mode
-                name: '@deepseek-ai/dsh-plan-mode'
-                config:
-                  section: |
-                    你处于计划模式，直到用户通过 exit_plan_mode 批准计划或切换会话模式。用户用命令式语气要求实现，意为"规划实现方案"而非立刻执行。
-
-                    许愿模式下计划只做一件事：把「怎么算做对了」写成可执行的验收清单。先只读探索（read/grep/静态分析），不写文件。
-
-                    计划必须含：目标、可见行为、验收命令（可直接粘贴运行）、按文件的改动点、不可变量、已假设的默认值。精简到能评审，详细到别人不必再决策。
-
-                    准备好后调用 exit_plan_mode 传完整 markdown 计划（以 # 开头），且它必须是那次回复中唯一且最后的工具调用。
-          - id: compaction
-            name: cordis:group
-            group: true
-            isolate:
-              compaction: true
-              toolResultPruner: true
-            config:
-              - id: compaction-basic
-                name: '@deepseek-ai/dsh-compaction-basic'
-                config:
-                  maxTokens: 16384
-              - id: command-compact
-                name: '@deepseek-ai/dsh-command-compact'
-              - id: tool-result-pruner
-                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
-                config:
-                  thresholdChars: 4096
-                  headChars: 1536
-                  tailChars: 384
-          # 子代理（扇出编码）：spawn = 全新上下文的子代理。省略 agentPreset 时它加入**父会话
-          # 当前的 preset revision** —— 同 persona/技能/工具，但**看不到本会话**，所以任务书必须
-          # 自包含（协议在 skills/wish-loop 阶段 3.5，续跑在 4.5）。
-          - id: delegation
-            name: cordis:group
-            group: true
-            isolate:
-              workflowEngine: true
-            config:
-              - id: tool-subagent-control
-                name: '@deepseek-ai/dsh-tool-subagent-control'
-              - id: tool-subagent
-                name: '@deepseek-ai/dsh-tool-subagent'
-                config:
-                  provider: spawn
-                  toolName: subagent
-                  modelSelection: false
-                  # 写死 1：子代理不能再派孙代理（默认取自 Host subagent.maxDepth=1，显式写
-                  # 避免 Host 调高后变成树状扇出——每层都是独立冷前缀）。spawn provider 有
-                  # depthLimit 能力，到顶时子代理会收到「直接做，别再派」的运行时提示。
-                  maxDepth: 1
-          - id: tool-ask-user
-            name: '@deepseek-ai/dsh-tool-ask-user'
-          - id: tool-todo
-            name: '@deepseek-ai/dsh-tool-todo'
-            config:
-              allowParallelInProgress: true
-          - id: present
-            name: '@deepseek-ai/dsh-tool-present'
-          - id: tool-web
-            name: '@deepseek-ai/dsh-tool-web'
-            # 与 devteam 同：宿主未配 DEEPSEEK_API_KEY 时 web_search 必失败，禁用以省 schema。
-            # 要恢复：配好 key 后删掉 disabled 一行。
-            disabled: true
-            config:
-              fetch: false
-              searchTimeoutMs: 60000
-              searchMaxResults: 3
-              searchMaxQueries: 2

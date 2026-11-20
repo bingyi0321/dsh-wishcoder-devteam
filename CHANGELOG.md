@@ -2,6 +2,30 @@
 
 本项目的版本号跟随仓库 tag（`v0.0.1` 起）。
 
+## 0.0.101 — 2026-11-20
+
+**单入口**：删掉 `preset-wishcoder`，许愿式交付折叠成 devteam 入口下的「许愿：」模式。只合入口、不合 persona。
+
+> 版本号沿 `0.0.x` 递增（上一版 `v0.0.1`）。中间的 `0.1.0` 是未发布、未打 tag 的内部草稿，本次发版直接并入 `0.0.101`。
+
+### 为什么
+- 0.0.1 发布后 6.5 小时，wishcoder 0 次被选（全量 385 个会话头：devteam 246 / standard 92 / optimizer 29 / cordis 10 / miniprogram 6 / wishcoder 0）——第二个并列入口没有被选用的证据。
+- 两段 persona 在同一触发（>3 文件或 >50 行）下要求相反动作（`先问「是否确认扩大改动范围？」` vs `先落 SPEC 再动，不提问`），硬合并会重演 `opt-wishcoder-2026-11-20.md` 的 P0-2。
+- 未选中的 preset 不进请求，合并省不到 token；唯一真实成本是「建会话时二选一、选错只能重开」。
+
+### 改动
+- `cordis.patch.yml`：删 `- id: preset-wishcoder` 整段（371→EOF，原 519 行）；文件头改成单入口说明；wishcoder 源文件头注释改为折叠说明（保留"不挂 goal / 不加 workflow / 不声明 permission"三条理由）。
+- devteam persona 865→1000 字符：新增「许愿：」路由行（用户以「许愿：」开头，或要整页/整功能/从零 → 先 `skill wish-loop`，不提问、验收先行、全绿才交付、三行收尾；此时「>3 文件先问」不适用）；技能行补 `wish-loop/verify-harness（许愿）`；压缩 验收/环境/输出 三行腾字符。
+- `skills/wish-loop/SKILL.md:203`：退化表「固定三行」字段名对齐为 改动 / 验证 / 残留（P1-5 落地时漏改这一处）。
+- `validate.cjs`：`PRESETS` 只留 devteam；新增 `NON_ROLE_SKILLS = ['wish-loop','verify-harness']`（不进 roles.json 的许愿闭环）；preset 行数断言 2→1；persona 关键词加 `许愿：`、`wish-loop`。
+- `package.json`：version 0.0.101，description 改单入口表述。
+- `README.md`：重写为单入口版（安装/两种用法/触发词表/18 插件行/8 技能/门禁 7 项/发布流程/排障表）。
+- profile（`C:\Users\Administrator\.dsh\profiles\desktop\cordis.patch.yml`）：`agent-preset-registry.selectedDefault` 从 `standard` 改为 `devteam`。
+
+### 已知取舍
+- 折叠后沿用 devteam 的 `includeDefaultRoots: false` → 宿主 `office`/`hyperframes` 等技能不在目录里。许愿对象若是文档/视频，需要把该行改 `true` 并跑 validate（接受约 1.2k 字符/请求）。
+- persona 顶到 1000 字符上限：再加规则必须先删旧条，否则门禁失败（这是护栏，不是缺陷）。
+
 ## 0.0.1 — 2026-11-20
 
 首个合并发布版本：把原先分开的两个 DSH 预设合并为一个 bundle。
