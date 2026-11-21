@@ -16,7 +16,7 @@
 
 - `node dsh-wishcoder-devteam/validate.cjs` → 9 项全绿、0 条提醒、`GATE_EXIT=0`（技能正文仍在 19,000/13,000 字符上限内，阶段号 13 个齐全）。
 - 回放本身：`scripts\verify.ps1` 红 → 实现 → 绿（`OK` / exit 0），四条检查含「stderr 必须非空」。
-- 发布：`npm pack` 22 files / 131.3 kB / shasum `6a8cac32…`；`git tag v0.0.209`（仓库无 remote，只在本地产物与 tag）。
+- 发布：`npm pack` 22 files / 131,345 B / shasum `9e20c018…` / sha256 `47026A6C…` → `D:\agent\.research\dist\dsh-wishcoder-devteam-0.0.209.tgz`；`git tag v0.0.209`（仓库无 remote，只在本地产物与 tag）。
 
 ### 未做
 
