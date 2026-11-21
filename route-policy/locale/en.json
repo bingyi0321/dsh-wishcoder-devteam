@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Subagent route policy",
+    "description": "Records a subagent model allowlist on every Session, so a subagent can name a route other than the parent's."
+  }
+}

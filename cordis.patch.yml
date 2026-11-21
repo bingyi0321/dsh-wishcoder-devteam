@@ -1,4 +1,4 @@
-# dsh-wishcoder-devteam v0.0.102 — 单入口（DevTeam-20 + 许愿模式）
+# dsh-wishcoder-devteam v0.0.201 — 单入口（DevTeam-20 + 许愿模式）
 #
 # 顶层只有一个 preset 行：devteam（order 20）。v0.0.1 的第二个预设 wishcoder(21)
 # 已折叠掉——它 0.0.1 发布后 6.5 小时内 0 次被选（385 个会话头统计：devteam 246 /
@@ -196,17 +196,24 @@
           # （C:\Users\Administrator\.dsh\profiles\desktop\cordis.patch.yml，profile 层最后生效）；
           # 理由、代价与回滚见 .research/blindspots-v21.md §7。
           # 规则：preset 的 plugins 列表只放 agent/session 作用域的行，内核服务行一律放 profile 层覆写。
+          # v26（2026-11-20，三段式）：persona 1000 → 989，守 1000 上限（validate.cjs 同源）。
+          # 许愿行加「三段：本会话判愿/SPEC/验收→子代理(同路由)或自写实现→三振接管」；
+          # 成本行「不换模型」→「子代理只能同路由，别传异地 model」。
+          # v26.1 修正（T6 r3 实测）：原写法「本人(Pro)…→flash 实现」诱导跨路由派发，必被运行时拒绝——
+          # dsh-tool-subagent/lib/index.js:85 assertAllowedModelSelection：无 Session policy 时显式选择只允许等于父路由，
+          # policy 为会话级持久状态（stateVersion 1，init null，经 subagent/model-selection-policy 事件写入），本机未记录。
+          # 故 persona 不再出现模型名，规则写成「同路由」。细则在 skills/wish-loop「三段分工」与 verify-harness §8，不进前缀。
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
               prefix: |
                 DevTeam（产品+前后端+桌面+Android+固件）。目标：最小 diff、最少 token、最快。
 
-                输出：只报改动文件+一行理由（≤10 字）；不解释、不总结、不寒暄、不列计划、不贴代码、不复述工具结果；失败多一行；许愿按三行。
+                输出：只报改动文件+一行理由（≤10 字）；不解释/总结/寒暄/列计划/贴代码/复述结果；失败多一行；许愿按三行。
 
-                范围：先定位唯一最小改动点；禁整文件重写、无关格式化、顺手优化；架构只动接口与调用关系；>3 文件或 >50 行 diff 先问「是否确认扩大改动范围？」。
+                范围：先定位唯一最小改动点；禁整文件重写、无关格式化、顺手优化；架构只动接口与调用关系；>3 文件先问「扩范围？」。
 
-                许愿：用户以「许愿：」开头，或要整页/整功能/从零做 → 先 skill wish-loop：不提问（例外：删改数据、账号付费、代价差 10 倍）、先写会失败的验收、全绿才交付、三行收尾（改动/验证/残留）；此时「>3 文件先问」不适用。
+                许愿：「许愿：」开头或整页/整功能/从零 → skill wish-loop；三段：本会话判愿/SPEC/验收→子代理(同路由,禁换模型)或自写实现→三振接管；不提问（删改数据/账号付费/代价差 10 倍除外）、先写会失败的验收、全绿才交付、三行收尾；此时「>3 文件先问」不适用。
 
                 验收：动手前定 A→B，非许愿才问一个最短问题。
 
@@ -214,19 +221,19 @@
 
                 底线：不臆造 API/字段/路径；不删用户代码；自测必跑，成功不贴结果；不跑破坏性命令。
 
-                步数：同一步并发 2~4 个 read/grep/pwsh（单调用步 ≤30%）；先 grep -n 再局部读；成功不重跑、失败换参。
+                步数：同一步并发 2~4 个 read/grep/pwsh（单调用<30%）；先 grep -n 再局部读；成功不重跑、失败换参。
 
-                改动：源码只用 write/edit，禁 pwsh 写；任何 edit 前该文件须先 read（注入的 AGENTS.md/NOTES.md/技能正文也算未读）；EIO 就整写。
+                改动：源码只用 write/edit，禁 pwsh 写；任何 edit 前先 read（注入的 AGENTS.md/NOTES.md/技能正文也算未读）；EIO 整写。
 
                 验证：攒 3~5 处改动跑一条 v.ps1（构建→启→截→dump 只回一行）；红测先读断言；一次读图；对齐走 uidump。
 
-                环境：AGENTS.md 已注入别重读；JDK 显式设；PATH 无 node/pwsh 用其绝对路径。
+                环境：AGENTS.md 已注入别重读；JDK 显式设；PATH 无 node/pwsh 用绝对路径。
 
-                记忆：MEMORY.md→项目 CODE-MAP.md（代码地图）/NOTES.md，先 grep 再读。
+                记忆：MEMORY.md→项目 CODE-MAP.md/NOTES.md，先 grep 再读。
 
-                成本：request/ask；不换模型；折前写 X=可折叠/总input，X<0.5 不压；spawn 须≥2 写域，wait≤60s。
+                成本：request/ask；子代理只能同路由，别传异地 model；折前写 X=折叠量/总input，X<0.5 不压；spawn 须≥2 写域，wait≤60s。
 
-                技能：动手前先 skill；devteam-flow（多文件/重构）、web-platform、android-app（改安卓/构建/真机）、embedded-firmware、debug-research、win-desktop、wish-loop/verify-harness（许愿）；新角色须批准注册。
+                技能：动手前先 skill；devteam-flow（多文件/重构）、web-platform、android-app（安卓/构建/真机）、embedded-firmware、debug-research、win-desktop、wish-loop/verify-harness；新角色须批准。
           - id: agent-instructions
             name: '@deepseek-ai/dsh-agent-instructions'
             config:
@@ -337,11 +344,23 @@
                 config:
                   provider: spawn
                   toolName: subagent
-                  # 关掉按会话采样模型路由：省 3 个可选参数 + list_subagent_models 工具
-                  # （子代理默认继承父路由，本来就是 flash/low）。
-                  # v25：旧键 modelSelectionSettings 在 0.2.2 的 Config schema 里已不存在，
-                  # 改为 modelSelection（zod boolean，默认 false）与 modelDiscovery（默认 false）。
-                  modelSelection: false
+                  # v26.1（T6 r3 实测修正）：modelSelection 改回 false。
+                  # 原意是让段 2 显式派 flash；但运行时在 dsh-tool-subagent/lib/index.js:85
+                  # assertAllowedModelSelection 里先查 Session 的 subagentModelSelectionPolicy：
+                  # 无 policy 时显式选择必须等于父路由，否则抛
+                  #   child LLM route "…/deepseek-v4.1-flash" is not allowed for this Session;
+                  #   without a recorded model-selection policy, explicit selection is limited to the parent route
+                  # 该 policy 是会话级持久状态（stateVersion 1、init null，经 subagent/model-selection-policy
+                  # 事件写入，surface false）。
+                  # v27（2026-11-20）：policy 现在有写者了 —— 本 bundle 的 route-policy 行
+                  # （见文件末尾 subagent-route-policy）在 session/created 之后
+                  # 一个微任务补写该事件，allowedModels = deepseek-v4-pro + deepseek-v4.1-flash。
+                  # 故这里改回 true：不开时请求会先被
+                  #   "child model selection is disabled for this tool instance" 挡掉，根本走不到 policy。
+                  # 代价：+3 个可选参数 ≈+220 字符 schema ≈+60 tok/请求。
+                  # policy 没写成时仍会被拒（"… is not allowed for this Session"），退回不传即可。
+                  # modelDiscovery 仍 false。
+                  modelSelection: true
               # v4 不再挂 fork provider：subagent_fork 会继承父会话全量上下文，
               # 单次调用成本最高。需要协作时用 subagent（spawn）+ 精简任务书。
           - id: tool-ask-user
@@ -365,3 +384,19 @@
               searchMaxQueries: 2
           - id: present
             name: '@deepseek-ai/dsh-tool-present'
+          # v29.2（2026-11-21）：这一行从 preset 移到 profile 层
+          # （C:\Users\Administrator\.dsh\profiles\desktop\cordis.patch.yml 末尾）。
+          # 原因：`subagent-model-selection-settings` 注册的是全局服务名
+          # `subagentModelSelection`，而 preset 的 plugins 会被每条会话/preset 实例各装配一次，
+          # 于是在启动时报
+          #   Error: service "subagentModelSelection" has been registered at <SubagentModelSelectionConfig>
+          # （2026-11-20T16:42:27.060Z 日志原文）。放到 profile 层只装一次，服务不再重复注册。
+          # 配置（enabled + allowedModels）也随行搬走；设置页 dsh-devteam-settings 编辑同一命名空间。
+          # v29.1（2026-11-21）：设置页搬出去成独立包 dsh-devteam-settings。
+          # 原先在这里挂了一行 name: 'dsh-wishcoder-devteam' 想借 bundle 根包当 client 宿主，
+          # 浏览器里没出现页面。原因判断：`dsh.client` 由 client-modules 按「Loader 行的包」
+          # 解析（lib/index.js:783 resolveMeta → locatePkgJson → 包的 package.json），
+          # 而 preset bundle 根包被 Loader 当作 bundle 展开，不是普通插件行，形态没被模板覆盖。
+          # 现在这行删除，client 声明与页面都在 D:\agent\dsh-devteam-settings（装进 profile），
+          # 它注册 plugins.bundle.config（key=包名）与 plugins.row.config（key=包名#行id），
+          # 编辑的仍是上面这行拥有的 subagent-model-selection 命名空间。

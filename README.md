@@ -3,7 +3,7 @@
 > 一个 DSH bundle、**一个**预设：`devteam`（DevTeam-20 · 资深融合开发团队），内置「许愿：」模式。
 > 装一次，改代码和「从零做一个东西」走同一个入口，不用在新建会话时二选一。
 
-- 版本：`0.0.102`
+- 版本：`0.0.201`
 - 类型：DSH agent preset bundle（`dsh.bundle.patch` → `cordis.patch.yml`）
 - 许可：MIT
 - 仓库：`github.com/bingyi0321/dsh-wishcoder-devteam`
@@ -97,6 +97,19 @@ profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle �
 ```
 
 预期动作：写 SPEC → 写 `scripts/verify.ps1` → 跑红 → 实现 → 跑绿 → 报三行（改动 / 验证 / 残留）。
+
+从 0.0.103 起，这条路径按**三段**分工：
+
+| 段 | 谁 | 做什么 |
+|---|---|---|
+| 1 | 主会话 | 判愿、写 SPEC、写会失败的验收、记 sha256 指纹 |
+| 2 | 子代理（继承会话路由）或本会话自写 | 只读 SPEC/验收，改代码直到跑绿；不改判据 |
+| 3 | 主会话 | 三振不绿时接管：改验收 / 换路线 / 亲自写关键 20% |
+
+理由与价目见 [CHANGELOG.md](CHANGELOG.md) 的 0.0.103 段；准则是「省钱省在实现段，准在不可逆的判愿与验收上」。省钱有两条路：换整场路由（profile 的 `agent-default-model`），或在 spawn 里显式传 `provider`/`model`。后者受 Session 的 `subagent/model-selection-policy` 约束——**0.0.106 起由官方 `subagent-model-selection-settings` 行写入，而这一行挂在 profile 层**（`profiles/desktop/cordis.patch.yml` 末尾，白名单 `dsh-opencode-go/deepseek-v4-pro` + `dsh-opencode-go/deepseek-v4.1-flash`），没有该记录的会话只允许派等于父路由的子代理。放 preset 会随每条会话重复注册全局服务 `subagentModelSelection`，启动即报错、命名空间 serve 不出来——0.0.105 就是这么"页面不出现"的。`subagent` 行的 `modelSelection` 因此保持 `true`（不开时请求先被 `child model selection is disabled for this tool instance` 挡掉）。
+
+**改白名单不用改文件**：侧栏 → Plugins → **dsh-devteam-settings** 的页面（独立插件包 [`../dsh-devteam-settings`](../dsh-devteam-settings)，`client.js` 注册进 `plugins.bundle.config` / `plugins.row.config`，不用 `plugins.item`——那个 slot 归官方设置页）。页内上半是用法说明、下半是开关与路由表，保存写入 Host 设置文档的 `subagent-model-selection-settings` 命名空间。`cordis.patch.yml` 里那份 `config` 只是出厂默认值。说明见 [`../dsh-devteam-settings/USAGE.md`](../dsh-devteam-settings/USAGE.md) 与写法侧的 [`route-policy/USAGE.md`](route-policy/USAGE.md)。
+
 不满意就补一句（「圆角要 24px」），它把这条加进验收再跑一遍——**验收是唯一的口径**，不靠自我感觉。
 
 已经聊了很多轮的会话里也能直接许愿：许愿不是预设，是 persona 的一行路由，不用新开会话。区别是这时它得先记**基线**（当前哪些验收是绿的，写进 SPEC），否则「先写验收、确认它红」会一开跑就是绿的——那是假绿，不是做对了。
@@ -119,6 +132,8 @@ profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle �
 | 「做个…/从零/整页/整功能/端到端」 | 许愿（persona 路由行；拿不准就自己加「许愿：」，最省事） |
 | 「这个文件重构一下」 | `devteam-flow`（跨文件编排） |
 
+**给最终用户看的完整说明**（触发、写法、例子、成本、排障）在 [`docs/wishcoder-guide.md`](docs/wishcoder-guide.md)；下面是技术视图。
+
 ## 5. 技能（8 个）
 
 `skills/` 下 8 个目录，一次性全部可发现（`includeDefaultRoots: false`，只有本包的技能）：
@@ -131,7 +146,7 @@ profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle �
 | `embedded-firmware` | 固件、串口、板级调试 |
 | `debug-research` | 现象→假设→最小复现的排障，别盲调 |
 | `win-desktop` | Windows 桌面程序、注册表、服务、打包 |
-| `wish-loop` | 许愿闭环：验收先行、三振换法、交付前三行 |
+| `wish-loop` | 许愿闭环：三段分工（本会话判愿/SPEC/验收 → 子代理或自写实现 → 三振接管）、验收先行、三振交回、交付前三行 |
 | `verify-harness` | 写可执行的验收脚本（`scripts/verify.ps1`），全绿判定 |
 
 前 6 个是**开发角色**（进 `roles.json` 注册表，新增须批准登记）；`wish-loop` / `verify-harness` 是**许愿闭环**，走 `validate.cjs` 的 `NON_ROLE_SKILLS` 白名单，不占角色名额。
@@ -149,7 +164,7 @@ profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle �
 | 9 | `tool-jobs` | 后台任务 |
 | 10 | `skill-filesystem` | 技能根：本包 `skills/`，`watch: false`（技能改动不冲前缀缓存） |
 | 11 | `tool-skill` | 加载技能正文 |
-| 12–14 | `planning` / `compaction` / `delegation` | 计划、压缩、子代理（含深度上限） |
+| 12–14 | `planning` / `compaction` / `delegation` | 计划、压缩、子代理（深度 1；`modelSelection: true`——能否跨路由由会话的 `subagent/model-selection-policy` 决定，白名单没覆盖到的组合照样被拒；`modelDiscovery` 关） |
 | 15 | `tool-ask-user` | 问用户 |
 | 16 | `tool-todo` | 待办板 |
 | 17 | `tool-web` | **`disabled: true`**（无 `DEEPSEEK_API_KEY` 时联网必失败；要用先配 key 再删那行 disabled） |
@@ -197,7 +212,7 @@ dsh-wishcoder-devteam/
 - 发版三步：改 `package.json` / `validate.cjs` 里的版本 → `CHANGELOG.md` 记「为什么 / 改动 / 已知取舍」 → 跑门禁 → `git tag v0.0.x` 并推送。
 - 宿主装载以**重启**为准：bundle 列表与预设定义在进程启动时读，改完不重启，新建会话仍用旧定义。
 
-当前版本 `0.0.102` 的变更见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本 `0.0.201` 的变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 10. 已知限制与排障
 
@@ -209,6 +224,8 @@ dsh-wishcoder-devteam/
 | 宿主的 `office` / `hyperframes` 技能不见了 | `includeDefaultRoots: false`（沿用 devteam，省约 1.2k 字符/请求） | 要文档/视频能力就把该行改 `true` 并跑 validate |
 | persona 改不动了 | 已顶 1000 字符上限 | 先删一条旧规则再加（护栏，不是 bug） |
 | 联网工具报错 | `tool-web` 默认 disabled | 配 `DEEPSEEK_API_KEY` 后删 `disabled: true` 那行 |
+| 子代理派成别的模型被拒 | 无 Session policy 时显式选择只允许等于父路由（`dsh-tool-subagent/lib/index.js:85`） | 不传 `provider`/`model`（继承父路由）；确实要换模型就改 profile 的 `agent-default-model` 再开新会话 |
+| 跑绿了但结论不对 | 实现段改过 `verify.ps1` | 交付前 `(Get-FileHash scripts\verify.ps1 -Algorithm SHA256).Hash.Substring(0,16)` 与 SPEC 指纹比对；对不上回段 1 重写判据 |
 | 老会话报 preset 不存在 | 该会话记录的 `agentPreset` 是已删的 `wishcoder` | 新建会话；实测这类会话数为 0 |
 
 ## 11. 许可
