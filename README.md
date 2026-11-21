@@ -3,7 +3,7 @@
 > 一个 DSH bundle、**一个**预设：`devteam`（DevTeam-20 · 资深融合开发团队），内置「许愿：」模式。
 > 装一次，改代码和「从零做一个东西」走同一个入口，不用在新建会话时二选一。
 
-- 版本：`0.0.202`
+- 版本：`0.0.204`
 - 类型：DSH agent preset bundle（`dsh.bundle.patch` → `cordis.patch.yml`）
 - 许可：MIT
 - 仓库：`github.com/bingyi0321/dsh-wishcoder-devteam`
@@ -21,7 +21,9 @@ DSH（DeepSeek Harness）的预设（preset）决定一个会话的 persona、�
 同一份 persona 里用一行路由把两种跑法分开：
 
 - **日常改代码**（默认）：`grep -n` 定位唯一最小改动点 → 改 → 跑一条自测 → 报「改了哪个文件 + 一行理由」。
-- **许愿**（用户以「许愿：」开头，或要整页/整功能/从零做）：加载 `wish-loop`，走「不提问 → 先写会失败的验收 → 全绿才交付 → 三行收尾（改动/验证/残留）」；此时 persona 里「>3 文件先问是否扩大范围」**不适用**。
+- **许愿**（用户以「许愿：」开头，或要整页/整功能/从零做）：加载 `wish-loop`，走五段流水线——需求转译（`requirement-translator` 出需求卡/SPEC/分派表）→ 按写域派领域子智能体实现（任务书要求先回 ≤8 行规划，派后锁写域不追加需求）→ **派一个只读验收子代理**（加载 `acceptance-verifier`）逐条 AC 核对并跑 verify、落项目根 `TEST-REPORT.md` → 功能测试一轮 → 清过程件，两关全绿才报完成；此时 persona 里「>3 文件先问是否扩大范围」**不适用**。
+
+- **沉淀按三档**（v0.0.207）：常驻档（项目根 `AGENTS.md`）整份注入、**每请求重付**，所以「记下来」≠「写进常驻」。草稿（会话内/`.wish/`，清理时删）→ 候选（`NOTES-YYYY-MM.md`，append-only 按月轮转，grep 命中才读）→ 常驻（回放用例验证过 + 带 `verified:` 才晋升，硬预算 ≤60 行 / ≤8 KB，`validate.cjs` 断言）。条目必须带 `ev:<命令或 文件:行>`，无证据不进候选；纠正写 `superseded-by:` 不删原条目。读侧是动作：任务开始按技术栈/模块名/报错词 grep，只读命中行 ±3。
 
 本包的前身是两个并列预设（`devteam` + `wishcoder`，v0.0.1）。第二个入口在发布后 6.5 小时的 385 个会话里被选了 **0 次**，且两段 persona 在同一触发条件下要求相反动作，因此 v0.0.101 起折叠成一个入口——**只合入口，不合 persona**。
 
@@ -96,19 +98,23 @@ profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle �
 许愿：做个能把手机截图批量裁成 1080x1920 并加圆角的小工具，双击能跑。
 ```
 
-预期动作：写 SPEC → 写 `scripts/verify.ps1` → 跑红 → 实现 → 跑绿 → 报三行（改动 / 验证 / 残留）。
+预期动作：需求转译（需求卡 + SPEC + 分派表）→ 写 `scripts/verify.ps1` → 跑红 → 按写域派子智能体实现 → 跑绿 → 验收专家逐条核对 → 功能测试一轮 → 报三行（改动 / 验证 / 残留）。
 
-从 0.0.103 起，这条路径按**三段**分工：
+从 0.0.203 起，这条路径按**五段**跑：
 
 | 段 | 谁 | 做什么 |
 |---|---|---|
-| 1 | 主会话 | 判愿、写 SPEC、写会失败的验收、记 sha256 指纹 |
-| 2 | 子代理（继承会话路由）或本会话自写 | 只读 SPEC/验收，改代码直到跑绿；不改判据 |
-| 3 | 主会话 | 三振不绿时接管：改验收 / 换路线 / 亲自写关键 20% |
+| 1 | 主会话（`requirement-translator`） | 把短句转成需求卡 / SPEC / 分派表（写域·AC·blocked_by），写会失败的验收并记 sha256 指纹 |
+| 2 | 每个写域一个领域 agent 子智能体（深度 1；域内 ≥2 个互不相交文件块**可**再下派一层，深度 2 到顶、不可再派） | 只读 SPEC/验收，把自己写域改到跑绿；不改判据；切不切由它自判，须回报 `SPLIT=` / `DEPTH2=` |
+| 3 | 派一个**只读验收子代理**（加载 `acceptance-verifier`；单文件小改可主会话自验，须先写死预期输出） | 指纹核对 + 逐条 AC 证据表 + 越界核对；给放行 / 打回；落项目根 `TEST-REPORT.md`（改动 / 测试 / 过 / 没过 / 未覆盖）。独立性靠换上下文，不靠自觉——同一个会话里自审不构成隔离 |
+| 4 | 主会话 | 功能测试一轮：构建 → 启动 → 3~5 条主路径（含一条错误路径） |
+| 5 | 主会话 | 三振接管（改验收 / 换路线 / 亲自写关键 20%）；清过程件（阶段 5.5 硬门禁）；两关全绿才交付三行 |
 
-理由与价目见 [CHANGELOG.md](CHANGELOG.md) 的 0.0.103 段；准则是「省钱省在实现段，准在不可逆的判愿与验收上」。省钱有两条路：换整场路由（profile 的 `agent-default-model`），或在 spawn 里显式传 `provider`/`model`。后者受 Session 的 `subagent/model-selection-policy` 约束——**0.0.106 起由官方 `subagent-model-selection-settings` 行写入，而这一行挂在 profile 层**（`profiles/desktop/cordis.patch.yml` 末尾，白名单 `dsh-opencode-go/deepseek-v4-pro` + `dsh-opencode-go/deepseek-v4.1-flash`），没有该记录的会话只允许派等于父路由的子代理。放 preset 会随每条会话重复注册全局服务 `subagentModelSelection`，启动即报错、命名空间 serve 不出来——0.0.105 就是这么"页面不出现"的。`subagent` 行的 `modelSelection` 因此保持 `true`（不开时请求先被 `child model selection is disabled for this tool instance` 挡掉）。
+**实测（2026-11-21，两档夹具）**：段 2 的切分能力已证——被要求下派时深度 2 子代理正常写码并回报 `DEPTH2=是`；切分**意愿**为零——4 文件 5~8 行、6 文件 ~170 行两档，领域 agent 都自判「任务书成本 > 写码成本」自己全写（`SPLIT=自己全写`、`DEPTH2=否`），且算式成立（每层 ≈58k 冷前缀）。所以「各 agent 开子智能体」在小域不会自发发生：`maxDepth: 2` 是**上限**不是配额，别把它读成必须切。
 
-**改白名单不用改文件**：侧栏 → Plugins → **dsh-devteam-settings** 的页面（独立插件包 [`../dsh-devteam-settings`](../dsh-devteam-settings)，`client.js` 注册进 `plugins.bundle.config` / `plugins.row.config`，不用 `plugins.item`——那个 slot 归官方设置页）。页内上半是用法说明、下半是开关与路由表，保存写入 Host 设置文档的 `subagent-model-selection-settings` 命名空间。`cordis.patch.yml` 里那份 `config` 只是出厂默认值。说明见 [`../dsh-devteam-settings/USAGE.md`](../dsh-devteam-settings/USAGE.md) 与写法侧的 [`route-policy/USAGE.md`](route-policy/USAGE.md)。
+理由与价目见 [CHANGELOG.md](CHANGELOG.md) 的 0.0.103 段；准则是「省钱省在实现段，准在不可逆的判愿与验收上」。省钱有两条路：换整场路由（profile 的 `agent-default-model`），或在 spawn 里显式传 `provider`/`model`。后者受 Session 的 `subagent/model-selection-policy` 约束——**0.0.106 起由官方 `subagent-model-selection-settings` 行写入，而这一行挂在 profile 层**（`profiles/desktop/cordis.patch.yml` 末尾，白名单 `dsh-opencode-go/deepseek-v4-pro` + `dsh-opencode-go/deepseek-v4.1-flash`），没有该记录的会话只允许派等于父路由的子代理。放 preset 会随每条会话重复注册全局服务 `subagentModelSelection`，启动即报错、命名空间 serve 不出来——0.0.105 就是这么"页面不出现"的。`subagent` 行的 `modelSelection` 因此保持 `true`（不开时请求先被 `child model selection is disabled for this tool instance` 挡掉）。但这条路**每请求多约 60 tok 的声明开销，跨路由到 flash 端到端没有实测收益**——日常最稳是**不传** `provider`/`model`（子代理沿用父路由），要整场省钱就换 `agent-default-model`。
+
+**改白名单不用改文件**：侧栏 → Plugins → **dsh-devteam-settings** 的页面（独立插件包 [`../dsh-devteam-settings`](../dsh-devteam-settings)，`client.js` 注册进 `plugins.bundle.config` / `plugins.row.config`，不用 `plugins.item`——那个 slot 归官方设置页）。页内上半是用法说明、下半是开关与路由表，保存写入 Host 设置文档的 `subagent-model-selection-settings` 命名空间。`cordis.patch.yml` 里那份 `config` 只是出厂默认值。说明见 [`../dsh-devteam-settings/USAGE.md`](../dsh-devteam-settings/USAGE.md)。
 
 不满意就补一句（「圆角要 24px」），它把这条加进验收再跑一遍——**验收是唯一的口径**，不靠自我感觉。
 
@@ -174,24 +180,26 @@ profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle �
 
 `enabled: true` 而 `allowedModels` 为空会被 Host 拒绝；改完跑 `node dsh-wishcoder-devteam/validate.cjs` 并**开新会话**生效（老会话保留创建时拿到的白名单，改配置对老会话无效）。
 
-完整说明（调用规则 / 验证命令 / 排错表）见 [`route-policy/USAGE.md`](route-policy/USAGE.md)。
+完整说明（调用规则 / 验证命令 / 排错表）见 [`../dsh-devteam-settings/USAGE.md`](../dsh-devteam-settings/USAGE.md)。
 
-## 5. 技能（8 个）
+## 5. 技能（10 个）
 
-`skills/` 下 8 个目录，一次性全部可发现（`includeDefaultRoots: false`，只有本包的技能）：
+`skills/` 下 10 个目录，一次性全部可发现（`includeDefaultRoots: false`，只有本包的技能）：
 
 | 技能 | 什么时候用 |
 | --- | --- |
 | `devteam-flow` | 多文件改动、重构、需求→契约→并行实现→评审 |
+| `requirement-translator` | 许愿短句转明确需求：需求卡 / SPEC / 分派表（流水线段 1） |
+| `acceptance-verifier` | 验收与功能测试：只读、指纹核对、放行/打回（流水线段 3/4） |
 | `web-platform` | 前端/Node 服务：路由、状态、构建、接口联调 |
 | `android-app` | 改安卓工程、构建、真机验证（adb/logcat/uidump） |
 | `embedded-firmware` | 固件、串口、板级调试 |
 | `debug-research` | 现象→假设→最小复现的排障，别盲调 |
 | `win-desktop` | Windows 桌面程序、注册表、服务、打包 |
-| `wish-loop` | 许愿闭环：三段分工（本会话判愿/SPEC/验收 → 子代理或自写实现 → 三振接管）、验收先行、三振交回、交付前三行 |
+| `wish-loop` | 许愿闭环：五段流水线（转译 → 分派实现 → 验收 → 功能测试 → 三振收尾）、验收先行、交付前三行 |
 | `verify-harness` | 写可执行的验收脚本（`scripts/verify.ps1`），全绿判定 |
 
-前 6 个是**开发角色**（进 `roles.json` 注册表，新增须批准登记）；`wish-loop` / `verify-harness` 是**许愿闭环**，走 `validate.cjs` 的 `NON_ROLE_SKILLS` 白名单，不占角色名额。
+前 8 个是**开发角色**（进 `roles.json` 注册表，新增须批准登记）；`wish-loop` / `verify-harness` 是**许愿闭环**，走 `validate.cjs` 的 `NON_ROLE_SKILLS` 白名单，不占角色名额。
 
 ## 6. 预设置里挂了什么（18 行）
 
@@ -206,7 +214,7 @@ profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle �
 | 9 | `tool-jobs` | 后台任务 |
 | 10 | `skill-filesystem` | 技能根：本包 `skills/`，`watch: false`（技能改动不冲前缀缓存） |
 | 11 | `tool-skill` | 加载技能正文 |
-| 12–14 | `planning` / `compaction` / `delegation` | 计划、压缩、子代理（深度 1；`modelSelection: true`——能否跨路由由会话的 `subagent/model-selection-policy` 决定，白名单没覆盖到的组合照样被拒；`modelDiscovery` 关） |
+| 12–14 | `planning` / `compaction` / `delegation` | 计划、压缩、子代理（`maxDepth: 2`：领域子智能体可再下派一层，深度 2 到顶；`modelSelection: true`——能否跨路由由会话的 `subagent/model-selection-policy` 决定，白名单没覆盖到的组合照样被拒；`modelDiscovery` 关） |
 | 15 | `tool-ask-user` | 问用户 |
 | 16 | `tool-todo` | 待办板 |
 | 17 | `tool-web` | **`disabled: true`**（无 `DEEPSEEK_API_KEY` 时联网必失败；要用先配 key 再删那行 disabled） |
@@ -217,18 +225,23 @@ profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle �
 ## 7. 自检门禁
 
 ```
-node D:\agent\dsh-wishcoder-devteam\validate.cjs
+node D:\agent\dsh-wishcoder-devteam\validate.cjs        # 正向：11 类断言
+node D:\agent\dsh-wishcoder-devteam\validate.selftest.cjs  # 负向：5 个探针，证明门禁还能抓到东西
 ```
 
 覆盖：
 
-1. `package.json` 可解析、版本与 bundle 声明一致；
+1. `package.json` 可解析、版本与 bundle 声明一致（`PROFILE` 由 `DSH_HOME`/`USERPROFILE` 派生，不写死用户目录）；
 2. 顶层**只有一个** `- insert:`、**恰好一个** preset 行、单 preset 18 插件行、order 无碰撞；
 3. 无内核级服务行（`permission` / `permissionPresets`）；
-4. persona 500~1000 字符且含「最小 diff / 底线 / 许愿： / wish-loop」；
-5. `customSkillDirs` 指向本包、每个技能有 `SKILL.md` 且 front-matter `name` 与目录名一致；
+4. persona 500~1000 字符、含「最小 diff / 底线 / 许愿： / wish-loop / 需求转译 / 验收专家 / 功能测试」，且**不得出现实现层词**（`.ps1` / `uidump` / `JDK` / `PATH 无` / `memory\`）——常驻层只放契约；
+5. `customSkillDirs` 指向本包、每个技能有 `SKILL.md` 且 front-matter `name` 与目录名一致；正文 ≥400 字符且 **≤上限**（`wish-loop` 19 KB、其余 13 KB）；
 6. `roles.json` 与 `skills/` 双向登记（`active` 角色全在、技能不 stray、许愿技能走白名单）；
-7. 文本卫生：无 U+FFFD、无零宽字符、无 BOM。
+7. 文本卫生：无 U+FFFD、无零宽字符、无 BOM；
+8. 五段流水线断言（`需求转译`/`阶段 4.7`/`阶段 4.8`/`阶段 5.5`/`深度 2`/`开工规划`/`派发后守注意力`/`TEST-REPORT.md`/`记忆三档`/`≤60 行 / ≤8 KB`），关键词只在注释里不算；
+9. 常驻预算：项目根 `AGENTS.md` ≤8192 B / ≤60 行；
+10. `wish-loop` 阶段号必须等于白名单 `0/1/2/3/3.5/4/4.5/4.6/4.7/4.8/5/5.5/6` 且唯一（重排不会静默断掉跨技能引用）；
+11. `CHANGELOG.md` 首条版本节 == `package.json` version；skills 里出现旧副本 `memory\projects` 直接 FAIL。
 
 退出 `0` = 通过，`1` = 失败（逐条打到 stderr）。**改完任何文件都要跑。**
 
@@ -236,25 +249,27 @@ node D:\agent\dsh-wishcoder-devteam\validate.cjs
 
 ```
 dsh-wishcoder-devteam/
-├─ package.json      # name/version + dsh.bundle.patch
-├─ cordis.patch.yml  # 唯一入口：一个 - insert:，一个 preset 行（devteam order 20）
-├─ validate.cjs      # 门禁
-├─ roles.json        # 开发角色注册表（6 个 active，maxSkills 6）
-├─ skills/           # 8 个技能
+├─ package.json            # name/version + dsh.bundle.patch
+├─ cordis.patch.yml        # 唯一入口：一个 - insert:，一个 preset 行（devteam order 20）；只留现行决策
+├─ validate.cjs            # 门禁（正向 11 类断言）
+├─ validate.selftest.cjs   # 门禁的负向自测（5 个探针，跑完自动还原）
+├─ roles.json              # 开发角色注册表（8 个 active，maxSkills 8）
+├─ skills/                 # 10 个技能（8 开发角色 + wish-loop / verify-harness 闭环）
+├─ docs/design-notes.md    # v4~v29 的设计决策与实测数据（原 patch 头注释）
 ├─ CHANGELOG.md
 ├─ LICENSE
 └─ README.md
 ```
 
-`cordis.patch.yml` 保留了源文件的全部历史注释（v4→v22 的改动理由与实测数据）。**出问题先读那里**，比读本文档快。
+`cordis.patch.yml` 的文件头只留 5 条现行决策；v4~v29 的改动理由、实测数据与回滚方式全在 `docs/design-notes.md`。**出问题先读那里**，比读本文档快。
 
 ## 9. 版本与发布
 
 - 版本号走 `0.0.x`（tag `v0.0.101`），与仓库 tag 一一对应。
-- 发版三步：改 `package.json` / `validate.cjs` 里的版本 → `CHANGELOG.md` 记「为什么 / 改动 / 已知取舍」 → 跑门禁 → `git tag v0.0.x` 并推送。
+- 发版三步：改 `package.json` / `validate.cjs` 里的版本（两处必须同值，门禁第 11 项会拿 `CHANGELOG.md` 首条来对） → `CHANGELOG.md` 记「为什么 / 改动 / 已验 / **未做**」 → 跑门禁 + `validate.selftest.cjs` → `git tag v0.0.x` 并推送。
 - 宿主装载以**重启**为准：bundle 列表与预设定义在进程启动时读，改完不重启，新建会话仍用旧定义。
 
-当前版本 `0.0.202` 的变更见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本 `0.0.204` 的变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 10. 已知限制与排障
 
@@ -266,8 +281,9 @@ dsh-wishcoder-devteam/
 | 宿主的 `office` / `hyperframes` 技能不见了 | `includeDefaultRoots: false`（沿用 devteam，省约 1.2k 字符/请求） | 要文档/视频能力就把该行改 `true` 并跑 validate |
 | persona 改不动了 | 已顶 1000 字符上限 | 先删一条旧规则再加（护栏，不是 bug） |
 | 联网工具报错 | `tool-web` 默认 disabled | 配 `DEEPSEEK_API_KEY` 后删 `disabled: true` 那行 |
-| 子代理派成别的模型被拒 | 无 Session policy 时显式选择只允许等于父路由（`dsh-tool-subagent/lib/index.js:85`） | 不传 `provider`/`model`（继承父路由）；确实要换模型就改 profile 的 `agent-default-model` 再开新会话 |
+| 子代理派成别的模型被拒 | 路由不在白名单，或会话没 policy（非 devteam 预设 / 未启用模型选择） | 设置页加这条路由；或关「启用模型选择」后不传 `provider`/`model`（继承父路由） |
 | 跑绿了但结论不对 | 实现段改过 `verify.ps1` | 交付前 `(Get-FileHash scripts\verify.ps1 -Algorithm SHA256).Hash.Substring(0,16)` 与 SPEC 指纹比对；对不上回段 1 重写判据 |
+| 领域子智能体没再下派（`DEPTH2=否`） | 段 2 的切分是**自判**：小域（几文件、纯函数）里任务书成本高于写码成本，它自己全写才对 | 不是 bug。要它必切就把 wish-loop 段 2 的「可」改成「必」并加预估阈值；否则看 `SPLIT=` 的切分理由是否成立 |
 | 老会话报 preset 不存在 | 该会话记录的 `agentPreset` 是已删的 `wishcoder` | 新建会话；实测这类会话数为 0 |
 
 ## 11. 许可

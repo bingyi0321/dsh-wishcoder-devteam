@@ -1,7 +1,7 @@
 {
   "$comment": "角色注册表（硬门禁）。每个 skills/<name>/ 都必须有一条 active 条目，且 approvedBy 必须是 user —— 没有用户明确同意，不许往本预设加角色。由 D:\\agent\\.research\\validate.cjs 校验；流程见 devteam-agent\\ROLES.md。字段：name=角色中文名，skill=技能目录名，addedAt=YYYY-MM-DD，approvedBy=user|lead(仅 draft)，approvalEvidence=用户原话或需求出处，status=active|retired。",
   "version": 1,
-  "maxSkills": 6,
+  "maxSkills": 8,
   "roles": [
     {
       "name": "DevTeam 主流程（需求/规范/拆分/评审）",
@@ -49,6 +49,22 @@
       "addedAt": "2026-10-25",
       "approvedBy": "user",
       "approvalEvidence": "用户原话：创建一个编写 windows 桌面控件软件的资深开发工程师（cordis.patch.yml v14 记录）",
+      "status": "active"
+    },
+    {
+      "name": "需求转译专家",
+      "skill": "requirement-translator",
+      "addedAt": "2026-11-21",
+      "approvedBy": "user",
+      "approvalEvidence": "用户原话：在用户输入时，将用户使用许愿模式时输入的简短的话转写成明确的需求，由需求转译专家整理后输出（v0.0.203 五段流水线）",
+      "status": "active"
+    },
+    {
+      "name": "验收专家",
+      "skill": "acceptance-verifier",
+      "addedAt": "2026-11-21",
+      "approvedBy": "user",
+      "approvalEvidence": "用户原话：各子智能体实现完成后，由验收专家进行验收；验收完成后，进行一轮功能测试，测试完成再上报真实完成（v0.0.203 五段流水线）",
       "status": "active"
     }
   ]

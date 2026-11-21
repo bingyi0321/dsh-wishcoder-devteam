@@ -7,13 +7,14 @@ description: "需求澄清、契约拆分、并行交付、评审放行。多文
 需求含糊、要 PRD/技术方案/接口契约、要拆任务分派、要定验收与交付格式、要评审放行。规范已明确只做实现时不加载。
 
 ## 角色路由
-需求/规范/验收→本技能；页面/API/库表→web-platform；Kotlin/上架→android-app；MCU/板级→embedded-firmware；报错/偶现/查资料→debug-research。一个任务一个主导角色；跨端先由主线把契约钉死（`specs/api.yaml`）再并行。
+需求/规范/验收→本技能；短句许愿→requirement-translator（段 1 转译）；实现完成后的验收与功能测试→acceptance-verifier（段 3/4）；页面/API/库表→web-platform；Kotlin/上架→android-app；MCU/板级→embedded-firmware；报错/偶现/查资料→debug-research。一个任务一个主导角色；跨端先由主线把契约钉死（`specs/api.yaml`）再并行。
 
 ## 角色注册（硬门禁：新角色须用户批准 + 登记）
 - 用户说「创建一个 X 工程师/角色」→ **先问「要加进 devteam 预设吗」并等明确同意**；没同意就只在本次会话扮演，不落盘、不改预设。
-- 同意后四件缺一不可：①`roles.json` 追加 `{name, skill, addedAt, approvedBy:"user", approvalEvidence, status:"active"}`（evidence 写用户原话）；②写 `skills\<skill>\SKILL.md`（name 同目录名、description ≤60 字符带触发词、正文 ≥600 字符）；③技能名进 persona 技能行（≤620 字符，先腾地方）+ README 技能表；④`node .research\validate.cjs` 通过。细则见 `devteam-agent\ROLES.md`。
-- 禁止只写 SKILL.md 不登记（validate 直接失败）；禁止用 `spawn_teammate` 冒充"造角色"（teammate 是临时工，不落盘、下一会话就没了）。
-- 技能上限 6 个：加第 7 个先合并现有技能或先改上限并写明理由；删/改名同样要问，条目改 `status:"retired"`，不物理删。
+- 同意后四件缺一不可：①`roles.json` 追加 `{name, skill, addedAt, approvedBy:"user", approvalEvidence, status:"active"}`（evidence 写用户原话）；②写 `skills\<skill>\SKILL.md`（name 同目录名、description ≤60 字符带触发词、正文 ≥600 字符）；③技能名进 persona 技能行（上限 1000 字符，先看 `validate` 报的现值再腾地方）+ README 技能表；④`node dsh-wishcoder-devteam\validate.cjs` 通过。细则见 `D:\agent\dsh-wishcoder-devteam\` 与 README。
+- **只认一套门禁**：`dsh-wishcoder-devteam\validate.cjs`（`ROOT` = 本 bundle，管 skills/cordis/roles/常驻预算）。`.research\validate.cjs` 的 `ROOT` 是**未加载的旧副本** `D:\agent\devteam-agent`——只有你确实改了那个副本才跑它，跑它对判断本预设毫无意义（2026-11-20 的 r3 会话就是这么读错根因的）。
+- 禁止只写 SKILL.md 不登记（validate 直接失败）；禁止用一个临时子代理冒充"造角色"（子代理不落盘，下一会话就没了）。
+- 技能上限 8 个（`roles.json` 的 `maxSkills`，只算角色技能；`wish-loop`/`verify-harness` 是闭环技能、不计入）：加第 9 个先合并现有技能或先改上限并写明理由；删/改名同样要问，条目改 `status:"retired"`，不物理删。
 
 ## 流水线（不满足退出条件不进下一阶段）
 1. 受理：定类型、判断拆不拆 → 说清"做完是什么样"。
@@ -22,8 +23,9 @@ description: "需求澄清、契约拆分、并行交付、评审放行。多文
 4. 任务图：标 blocked_by 与 write_scopes → 无循环依赖，每任务有验收点。
 5. 并行实现：先契约后代码 → 编译、单测通过。
 6. 集成：主线合并解冲突 → 契约双方联调通过。
-7. 验证：逐条跑 AC → AC→证据对照表，Must 全过。
-8. 交付：结论先行 + 证据 + 下一步。
+7. 验证：逐条跑 AC → AC→证据对照表，Must 全过（由 `acceptance-verifier` 只读执行，实现者不得自判）。
+8. 功能测试：构建 → 启动 → 3~5 条主路径（至少一条错误路径）一轮过，才准报完成。
+9. 交付：结论先行 + 证据 + 下一步。
 
 ## 澄清：先查再问
 ```bash
@@ -54,8 +56,11 @@ curl -s <base_url>/openapi.json | head -50
 - 共享构建/配置文件(package.json、build.gradle、锁文件、路由总表)归主线独占；集成与终检由主线负责。
 - **子代理任务书用契约式 6 行**（实测契约书 11 步 / 0 返工；无签名无 id 的任务书 52 步 + 主线 wait 188 s）：
   ①只准新建/改哪些文件（路径逐个列）；②禁改清单（契约文件、manifest、构建脚本不动）；③不许跑构建/安装（Lead 统一编译）；④API 签名逐行给出＋"签名不要改"；⑤目标布局/接口的全部 id 或字段名；⑥完成标准与自检项（括号/资源 id/编码）。
-- **派活后不等**：spawn 异步，派完立刻做主线工作（先排不依赖队友的验收脚本/探针）；`wait_agent` 超时给 **≤60 s**（实测一次给 300 s 白等 5 分钟 = 活跃墙钟 31%），醒来先 `team_task_list` 看状态再接。任务书附主线已读结论摘要，免子代理重做探索；返回先核对 public API 再集成。
+- **派活后不等**：spawn 异步，派完立刻做主线工作（先排不依赖队友的验收脚本/探针）；`wait_agent` 超时给 **≤60 s**（实测一次给 300 s 白等 5 分钟 = 活跃墙钟 31%），醒来先 `list_agents` 看状态再接。任务书附主线已读结论摘要，免子代理重做探索；返回先核对 public API 再集成。
+- **开工规划 + 派后锁范围**：任务书要求子代理第一条回复先给 ≤8 行规划（做什么 / 用什么工具 / 是否再下派 / 改哪些已有文件、新增哪些 / 取舍与缺点 / 自检点），规划写完才准动文件；派发后父侧不追加需求、不换写域（新发现记进 SPEC 补充段），收活对照写域核 `git diff --stat` 越界，越界回退再谈；纠偏两次不动就 `interrupt_agent` 接手。细则见 wish-loop「派发后守注意力」。
 - **≥2 个独立写域才 spawn**：单域任务自己做，任务书+集成+核对的固定开销大于收益。
+- **单愿派发上限 4**：深度 1 ≤3 个领域子代理 + 深度 2 ≤1 个执行子代理；超了串行（每多一层 = 一次冷前缀 ≈58k input，实测派发 ≈$0.0100/8 请求 vs 自写 ≈$0.0039/4 步）。
+- **验收与质量评审分开派**：AC 验收交 `acceptance-verifier`（对判据），另派一个**只读**子代理做质量评审（重复实现、命名、死代码、边界、错误处理），两者都只读、互不改文件；实现者自查不算评审。
 - **共享调用点最后改**：跨作用域调用的类/接口（如工具类引用队友新建的 Activity）必须在依赖文件已存在后再 edit，否则并行构建同时红（实测 3 个子代理报同一处失败）。
 - 工具：多步实现先 `todo_write`；缺信息用 `ask_user_question`（带默认项）；交付用 `present`。本预设**没有** `goal`/`create_goal`（v4 已删），别调。
 
@@ -87,6 +92,7 @@ curl -s <base_url>/openapi.json | head -50
 - **写前确认路径与范围**：路径不存在/沙箱只读/需提权，发起前用一次 `Test-Path` 查清，别用报错探路。
 - **pwsh 命令先小后大**：先 1 行探测（版本/路径/连通性）再跑长命令；长命令放后台 job。
 - **构建结果一次拿全**：整段输出重定向日志再按 `error:|FAILED` 过滤，同一条命令打印 `EXIT=$LASTEXITCODE`；别用 `Select-Object -Last N` 收口（错误在输出中段会被截掉，于是再补跑一次）。`cmdA; echo "EXIT=$LASTEXITCODE"` 会把退出码洗成 0——读 `EXIT=` 字段本身，别指望工具层 isError。
+- **PowerShell 里跑原生程序的 stderr 要落文件，别直连**：`$ErrorActionPreference='Stop'` 下子进程往 stderr 写任何内容都升级成终止错误（`NativeCommandError`），**`2>$null` 也照样 throw**——于是「必须打错误行」这类需求会被实现方用「门控掉 stderr」糊过去，验收还是绿的（2026-11-21 W1 回放实测）。写法：调用前后临时切 `$ErrorActionPreference='Continue'`、`2> $errFile` 收文件，再断言文件**非空**。
 - **跨轮重读**：重读前先看 NOTES/代码地图/上次结论，同一路径只取新行段（offset/limit）。
 - **同一条命令被同理由拒绝过就别再发**：换命令，或一次说清请用户授权。
 
@@ -94,33 +100,39 @@ curl -s <base_url>/openapi.json | head -50
 - **只报「改动文件 + 一行理由（≤10 字）」**；不解释、不总结、不寒暄、不列计划、不贴代码块、不复述工具结果。
 - 失败才允许多一行：错误原文一行 + 换法一句。自测结果不贴（成功即默认通过）。
 - 证据不丢：命令输出留在收尾那条 pwsh 里，结论写进 NOTES/CODE-MAP；用户要证据时再贴。
-- 例外只有两个：用户明确要方案/评审（走本技能评审闸门输出），或存在需要用户决策的分叉（一句话问题）。
+- **例外两条，一条通用**：①用户明确要方案/评审（走评审闸门输出）；②需用户决策的分叉（一句话问题）；③**技能声明了交付格式时以技能为准**（`debug-research` 的结论/证据/下一步、`acceptance-verifier` 的三选一结论、`verify-harness` §7 三行）——不在 persona 里逐个列名，加技能不用改 persona。
+- **仓库纪律三行（交付前自查，任一条不满足就写进"残留"）**：密钥/令牌只从环境变量读，不落文件、不进日志（`grep -rniE 'api[_-]?key|secret|token' <改动文件>`）；新增依赖须给用途+体积+许可证，且锁文件同步更新；不 `git push` / 不 `reset --hard` / 不改用户的 `.gitignore` 与既有提交。
+- **改动类交付附测试报告**：项目根 `TEST-REPORT.md` 五段（改动 / 测试 / 过 / 没过 / 未覆盖），全绿也出，红项原文照抄；报告路径进「验证」行，不把整表贴进回复。格式见 acceptance-verifier「测试报告」（唯一权威）。
+- **交付前清过程件（硬门禁）**：`git status --porcelain -uall` 清点 → 逐个 `Remove-Item -LiteralPath`（不用通配）→ 删完重跑验证。删 `*.log`/`*.bak`/截图/`scratch/`/一次性脚本，留判据资产与测试报告；用户原有文件一律不动。命令行见 wish-loop 阶段 5.5。
 
 ## 收尾沉淀（每次任务都做；这条命令跑完才算收尾）
 - **硬门禁**：收尾与自检是**同一条 pwsh**——写记忆、回读、取数一起发；没跑这条就是没做收尾。写在清单里不会执行（12b0c9b7 实测：条款读到了、交付仍没跑），并成一条才绕不过去。
 - 模板（换成实际路径；**必须显式 UTF-8 无 BOM**，读回也带 `-Encoding UTF8`，否则中文写坏/显示乱码）：
 ```powershell
 $u=New-Object System.Text.UTF8Encoding($false)
-[IO.File]::AppendAllText('<NOTES>', "`n- YYYY-MM-DD 结论：现象 → 根因 → 修法（证据 文件:行号）", $u)
-Get-Content '<NOTES>' -Encoding UTF8 -Tail 3
+# 候选档：项目根 NOTES-YYYY-MM.md（append-only、按月轮转，schema 见 wish-loop 阶段 6）
+[IO.File]::AppendAllText("$PWD\NOTES-2026-11.md", "`n- [坑] 一句话 | ev:文件:行 | verified:2026-11-21 | hits:1", $u)
+Get-Content "$PWD\NOTES-2026-11.md" -Encoding UTF8 -Tail 3
+# 取数：只有 D:\agent 工作区有这个工具；别处打印 n/a 继续，不当失败
 $node=(Get-Command node -ErrorAction SilentlyContinue).Source; if(-not $node){$node='C:\Users\Administrator\.dsh\dsh-runtimes\dsh-next-primary-runtime\dependencies\node\bin\node.exe'}
-& $node D:\agent\.research\tools\session-friction.cjs "$env:DSH_HOME\sessions" --session $env:DSH_SESSION_ID
+$t='D:\agent\.research\tools\session-friction.cjs'
+if (Test-Path $t) { & $node $t "$env:DSH_HOME\sessions" --session $env:DSH_SESSION_ID } else { 'score: n/a (本工作区无取数工具，跳过)' }
 ```
 - 没有新结论也要跑：删掉前两行 append，保留回读与取数两行（取数 0.1 s，数不含本条命令与最终回复）。
 - **写记忆的坑**：同时写 CODE-MAP 就在同一条命令里多加一行 append；批量替换先数命中数（必须恰好 1，>1 会写出自相矛盾句）；追加串首尾带 `` `n ``；工程外每多写一次是一次审批（实测 9 次审批/140 s/13 步）→ 一次收尾只写一次。
 - **交付里必须出现取数行的四个数**（`errorSteps` / `exitNZ` / `dupCalls` / `approvals`）——v23 起改为：这四个数只出现在收尾命令的输出里、不贴入回复（输出收敛优先）；异常时用一行说哪个数不对。
-- **收尾三问，缺一不算完**：①本次新确认的结论是哪一条（一句话）②写进了哪个项目的哪份文件（`AGENTS.md` / `memory\projects\<项目>\NOTES.md` / `CODE-MAP.md` 三选一，给路径）③下次谁会在什么时候读到它。
+- **收尾三问，缺一不算完**：①本次新确认的结论是哪一条（一句话）②写进了哪个项目的哪份文件（项目根 `NOTES-YYYY-MM.md` 候选 / `AGENTS.md` 常驻 / `CODE-MAP.md` 代码地图，三选一，给路径）③下次谁会在什么时候读到它。
 - 项目根 `AGENTS.md`：已由 agent-instructions 注入，**别重读**（重读 = 1 步 + 约 2.8k tok）；收尾把本次**新确认的环境/构建/坑**一行一条追加（`- [YYYY-MM-DD] 事实 — 证据 文件:行号`）。不存在且本次确实踩到环境坑，就在项目根创建它。
-- 新项目先在 `memory\projects\` 下建 `<项目>\{CODE-MAP.md,NOTES.md}` 并在 `MEMORY.md` 项目索引登记一行；同项目 `CODE-MAP.md` 补新的热点文件（相对路径 + 关键行号）；跨项目的工具链/成本结论写 `projects\devteam\NOTES.md`。
-- **写错位置=白写**：结论只落 `memory\projects\<项目>\NOTES.md`；顶层 `memory\NOTES.md` 是 ≤400 存根，落它=写错位置（validate 会 FAIL）。改过 `D:\agent\devteam-agent\` 任一文件（技能/记忆/配置），收尾必跑 `node D:\agent\.research\validate.cjs`，FAIL 不算完。
-- **NOTES 只留当月**：新条目 append 进 `NOTES.md` 的当月记录节；跨月后的首个收尾会话把上个整月块移入同目录 `NOTES-YYYY-MM.md`、并在顶部「月度归档」区加一行索引，NOTES.md 当月节清空重记。查往月结论先 grep 对应归档文件再定向读，别整读。
+- 新项目：项目根建 `NOTES-<当月>.md` 与 `CODE-MAP.md` 即可。**不要建 `memory\` 目录**——那是旧副本 `D:\agent\devteam-agent\` 的结构，本 bundle 无此目录，写进去只有你自己读得到、下一会话读不到。
+- **写错位置=白写**：结论只落上面三选一；旧副本那套 `memory\` + `projects\<项目>\NOTES.md` 结构本 bundle 不认（目录都不存在），写它=白写（`validate.cjs` 在 skills 里见到该路径直接 FAIL）。
+- **NOTES 只 append**：当月文件只追加，跨月新建 `NOTES-<新月>.md`，不搬块、不重写整份（整文件重写删记忆有先例：`ledger.jsonl` L054–L056 靠会话日志逐字恢复）。查往月先 grep 归档文件再定向读，别整读。
 - **别为了写记忆读记忆**：一条 append+tail 就够，同一 memory 文件一次收尾别读两遍（实测 ea974d6c 收尾 7 步：NOTES 读两次 + append 3 条 + 多压一次 = 7% 步数）。
 - 只写"下次能省时间的事实"，不写过程、不抄 diff；已有条目不重复。同一现象第三次换会话重来时，先查 `AGENTS.md` / `NOTES.md` 再动手——重开一次会话的代价是几十次工具调用。
 
 ## 验收记分（改动类任务的放行依据）
-- 收尾记 6 个数：**步数 / 错误步 / 人工干预 / 活跃墙钟（排除人类空闲）/ 人类空闲 / 完全重复调用**。基线：22 s 与 58,828 input token 每步；**错误步 v19 口径 7.9%**（120 会话实测：pwsh 结果的 `[stderr]` 段含异常签名也算失败；`[exit code: N]` 单独出现只计 exitNZ、不进错误步）。同批会话按 v12 口径只有 4.9%——旧口径系统性偏低，跨口径别直接比。
+- 收尾记 6 个数：**步数 / 错误步 / 人工干预 / 活跃墙钟（排除人类空闲）/ 人类空闲 / 完全重复调用**。基线：22 s 与 58,828 input token 每步；**放行线错误步 6.2%**（v12 口径，工作区 `AGENTS.md` 同源）。v19 口径 7.9%（把 pwsh 结果 `[stderr]` 段的异常签名也算失败、120 会话实测）只用于对照 v19 之前的会话，**别拿它当放行线，也别与 6.2% 直接比**。
 - 每步 input 明显高于基线时先查三件事：常驻图片/大工具结果、低 ROI 压缩、前缀重写；都算过再谈提示词。
-- 改动前后用同一批任务回放对比这 6 个数；没有对照只能算改动，不算优化。基线：`node D:\agent\.research\tools\score.cjs --baseline`。
+- 改动前后用同一批任务回放对比这 6 个数；没有对照只能算改动，不算优化。基线记录在工作区 `.research\scoreboard.jsonl`（`score.cjs --baseline` 只在 `D:\agent` 存在，别处跳过）。
 
 ## 自检回路（每次交付前；取数在收尾那条命令里，0 额外步数）
 - 取数只看四个数：`errorSteps>0` → 写哪一步、根因（别只认 isError 标红）；`exitNZ>0` → 归因待定（探活/`--quiet`/grep 无匹配也是 1），真失败进「矛盾项」；`dupCalls>0` → 重跑了什么；`approvals>0` → 该问没问/该切没切。

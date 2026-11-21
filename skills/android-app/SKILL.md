@@ -27,7 +27,7 @@ Android 页面/MVVM 分层与数据层改造、Gradle 构建失败、真机调�
 - 探索期取证用批量命令，别逐个 `read`：`Get-ChildItem app\src\main\res\drawable -Filter 'bg_*.xml' | % { "$($_.BaseName) " + ((Get-Content $_.FullName -Raw) -replace '\s+',' ') }` 一步拿全部形状/色值（串行要 5 步）。
 - 设计稿参数一次列清（颜色 hex、圆角、字号 sp、间距 dp、宽高），必要时落 `files/<feature>-tokens.md`；同屏多状态用合成图，别一屏一张。
 - **复用台账（用户说"可复用的不新建"时必做）**：新建 res 前 `grep -rl "<形态词>" app\src\main\res\drawable app\src\main\res\values`（`bg_`/`card`/`item_`/`ic_`）查既有同形；spec 与最终汇报各一行「复用 X / 新建 Y 因 Z」。实测一步新建 19 个资源、零逐项判定，用户约束无从核对。
-- **脚本固定套路**：`.ps1` 用 `pwsh -File`（PATH 常无 pwsh → 整段内联 pwsh，别退到 `powershell.exe`）；`powershell.exe` 5.1 把无 BOM UTF-8 当 GBK → 中文串乱码、点不中（实测 4 步）；dot-source 外部脚本会被 `analysis.dynamic-shell-source` 拦。脚本里只比 ASCII，或先 `chcp 65001`。
+- **脚本固定套路**：`.ps1` 用 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File x.ps1`（本机 PATH 无 `pwsh`，`where.exe pwsh` 实测为空、`$PSVersionTable` = 5.1.26100；别写 `pwsh` 也别指望 `-Command` 里塞长脚本）；5.1 把无 BOM UTF-8 当 GBK → 中文串乱码、点不中（实测 4 步）；dot-source 外部脚本会被 `analysis.dynamic-shell-source` 拦。脚本里只比 ASCII，或先 `chcp 65001`。
 - **既有行为先探针**："返回键回哪""这个 Activity 怎么起"这类假设先读该类 `onBackPressed`/`finish`，或一条 `dumpsys activity activities | Select-String topResumedActivity` 确认，别用截图试（实测返回键假设错连试 10 步）。
 - 构建批处理：同一轮跑 `lintDebug`/`testDebugUnitTest`；禁止「改一处→构建→装→截→改下一处」；同布局视觉微调最多 2 轮 build+install，第 3 轮起先 `uiautomator dump` 拿 bounds 证明偏移再改（实测盲调 4 轮 159 s）。
 - 取证一条命令出：`adb shell screencap -p /sdcard/s.png` + `adb pull`（`exec-out` 重定向会写坏 PNG）；多屏用 `System.Drawing` 裁切拼成一张对照图，一次 `read_image` 看完；**动作序列串进同一条 pwsh**（`input tap …; Start-Sleep 1; input text …; keyevent 4; screencap`），别一动作一步（实测 10+ 步）。

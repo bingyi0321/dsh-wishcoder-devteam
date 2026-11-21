@@ -1,6 +1,6 @@
 {
   "name": "dsh-wishcoder-devteam",
-  "version": "0.0.202",
+  "version": "0.0.209",
   "private": true,
   "type": "module",
   "description": "DevTeam-20 DSH agent preset: a fused 20-year senior engineering team with a built-in wish-style delivery mode (single entry; the former wishcoder preset folded into the wish-loop skill).",
@@ -14,22 +14,17 @@
   "license": "MIT",
   "exports": {
     "./package.json": "./package.json",
-    "./route-policy": "./route-policy/index.js",
-    "./route-policy/locale/*.json": "./route-policy/locale/*.json",
-    "./route-policy/icon": "./route-policy/icon.svg",
-    "./browser": "./client.js",
-    "./browser/host": "./settings-page.js",
     "./*": "./*"
   },
   "files": [
     "cordis.patch.yml",
-    "route-policy",
     "roles.json",
     "skills",
     "docs",
     "README.md",
     "CHANGELOG.md",
-    "validate.cjs"
+    "validate.cjs",
+    "validate.selftest.cjs"
   ],
   "dsh": {
     "bundle": {

@@ -2,6 +2,150 @@
 
 本项目的版本号跟随仓库 tag（`v0.0.1` 起）。
 
+## 0.0.209 — 2026-11-21
+
+**W1 端到端回放（revfile）暴露的两个缺陷落进正文。** 回放报告：`.research/tmp/w1-r2/TEST-REPORT.md`；判据 6/6 通过，代价见下两条。
+
+### 改动
+
+1. **子代理只交规划就收工**（`skills/wish-loop/SKILL.md` 阶段 3.5 任务书第 8 项）：补「规划写完不要停——规划与实现同一轮内接着做，做完再回报；只交规划 = 零交付」。回放实测：子代理首轮零工具调用、文件未建，而 `errorSteps=0`、`interventions=0`、turn 记为 `completed`——六个数看不出这种空转。
+2. **PS 5.1 把子进程 stderr 升级成终止错误**（`skills/devteam-flow/SKILL.md` 构建段）：补「`$ErrorActionPreference='Stop'` 下原生程序写 stderr 抛 `NativeCommandError`，`2>$null` 也 throw；验收脚本要临时切 `Continue` + `2> $errFile` 收文件，再断言非空」。否则「必须打错误行」这类需求会被实现方用「门控掉 stderr」糊过去，验收照样绿。
+3. 版本 0.0.209（`package.json` 与 `validate.cjs` 的 `VERSION` 同值）。
+
+### 已验
+
+- `node dsh-wishcoder-devteam/validate.cjs` → 9 项全绿、0 条提醒、`GATE_EXIT=0`（技能正文仍在 19,000/13,000 字符上限内，阶段号 13 个齐全）。
+- 回放本身：`scripts\verify.ps1` 红 → 实现 → 绿（`OK` / exit 0），四条检查含「stderr 必须非空」。
+- 发布：`npm pack` 22 files / 131.3 kB / shasum `6a8cac32…`；`git tag v0.0.209`（仓库无 remote，只在本地产物与 tag）。
+
+### 未做
+
+- 真 devteam 预设下的 A/B（headless 不能选预设，本次子代理继承父会话的 `optimizer` 预设）。
+- T2 / P1 两条回放用例仍未跑。
+
+## 0.0.208 — 2026-11-21
+
+**评审落地：记忆写域统一、记分命令可移植、persona 拆层、验收≠评审、门禁补上限。** 清单来自 `.research/devteam-preset-review-2026-11-21.md`（用户 m00058 决策：删历史注释=同意；角色名额、modelSelection 复算=暂不做）。
+
+### 改动
+
+1. **记忆写域三处不一致 → 一处**（P0-1）：`skills/devteam-flow` 收尾沉淀段删掉旧副本那套 `memory\projects\<项目>\NOTES.md` / 顶层存根（本 bundle 根本没有 `memory\` 目录，`memory\projects\` 在未加载的 `D:\agent\devteam-agent\`，照旧写 = 写进不生效的地方），改成「项目根 `NOTES-YYYY-MM.md`（候选）/ `AGENTS.md`（常驻）/ `CODE-MAP.md`（地图）三选一」并引用 `wish-loop` 阶段 6；删掉"顶层存根 validate 会 FAIL"这句假承诺（bundle 的 `validate.cjs` 当时零 memory 断言）。persona 记忆行同步改「项目 NOTES/CODE-MAP/AGENTS，先 grep 再读；环境事实写项目 AGENTS.md，别重读」。
+2. **记分命令可移植**（P0-2）：`devteam-flow` 收尾模板的 `session-friction.cjs` / `score.cjs` 改成 `Test-Path` 守卫，缺失时打印 `score: n/a (本工作区无取数工具，跳过)` 而不是报错；`validate.cjs` 的 `PROFILE` 由 `DSH_HOME` / `USERPROFILE` 派生，不再写死某个用户目录。
+3. **persona 拆层**（P0-3）：删「验证：改 3~5 处跑一条 v.ps1…uidump」与「环境：AGENTS.md 别重读；JDK 显式设；PATH 无 node…」两行（前者是 Android+PowerShell 栈、后者是本机事实，归属技能与项目 AGENTS.md），保留通用水位：「验证：改动攒批跑一条验收命令；红测先读断言；界面证据一次读图」「记忆：…环境事实写项目 AGENTS.md」。同时按 P1 七条改：输出行枚举例外 → 通用优先级「技能声明了交付格式时以其为准」；「代差 10 倍」→「工作量相差>10 倍」；许愿行加「另派只读质量评审」「单愿派发≤4」；底线加「不 push/reset；密钥只从环境读」；技能行加「文档/视频/表格先 office 技能或切 standard」。persona 955 → 959（上限 1000）。
+4. **验收 ≠ 质量评审**（P1-3）：`wish-loop` 阶段 4.7 新增「质量评审是另一双眼睛」——新建 ≥1 文件或 diff >50 行时与验收同一条消息再派一个**只读**子代理（看重复实现/命名分层/死代码/边界与错误处理/复述流程的注释，回报 ≤5 条分必改可改）；`acceptance-verifier`「与实现者的隔离」加一条划清权责；`devteam-flow` 并行节加同名一行。
+5. **派发预算**（P1-6）：`wish-loop` 阶段 3.5 加「单愿派发上限 4（深度 1 ≤3 + 深度 2 ≤1），第 5 片起串行」；`requirement-translator` 分派表加「文件数(估)」列 + 「同批并行行数 ≤3」硬规则——`maxDepth: 2` 是能力上限不是配额。
+6. **仓库纪律三行**（P1-4）：`devteam-flow` 交付格式新增——密钥/令牌只从环境读（给 grep 命令）；新增依赖须给用途+体积+许可证且锁文件同步；不 push / 不 reset --hard / 不动用户 `.gitignore` 与既有提交。
+7. **检索的真相与降级**（P1-2）：`debug-research` 把"检索整体禁用"改成"挡住它的是凭证"（v22 实测 10 次 5 次失败，无 `DEEPSEEK_API_KEY`），补恢复步骤（配 key + 删 disabled + 补 `fetch:false`/`searchMaxResults:3`，≈+90 tok/请求）与无网替代查证（`node_modules/<pkg>/README`、`*.d.ts`、缓存里的 `-sources.jar`、`--version`）。
+8. **口径收敛**（P1-8）：`devteam-flow` 验收记分明确「放行线 6.2%（v12 口径，AGENTS.md 同源）」，7.9%（v19）只用于对照 v19 之前的会话。
+9. **门禁补四类断言**（P1-1/P2-2/P2-5/P0-1）：技能正文上限（`wish-loop` ≤19 KB、其余 ≤13 KB，只有下限时单文件一路长）；persona 不得出现实现层词（`.ps1`/`uidump`/`JDK`/`PATH 无`/`memory\`）；skills 里出现旧副本 `memory\projects` 直接 FAIL；`wish-loop` 阶段号集合必须等于白名单且唯一（0/1/2/3/3.5/4/4.5/4.6/4.7/4.8/5/5.5/6）；CHANGELOG 首条版本节 == `package.json` version。
+10. **patch 瘦身**（P2-1，用户同意）：`cordis.patch.yml` 412 → 224 行，1~179 行历史注释与 v26~v29 变更记录原样迁 `docs/design-notes.md`，文件头只留 5 条现行决策。
+11. **门禁自测**：新增 `validate.selftest.cjs`（三个负向用例：persona 超限 / 技能超上限 / 注释里写关键词骗过流水线断言），跑完自动还原并复核字节数。
+
+### 已验
+
+- `node dsh-wishcoder-devteam\validate.cjs`：11 项全绿 / 0 warn（persona 959、10 技能、8 角色、阶段号 13 个、CHANGELOG 同源）。
+- `node dsh-wishcoder-devteam\validate.selftest.cjs`：3/3 通过，探针后文件字节数复原。
+
+### 未做（写在这里防止当成已做）
+
+- **没跑回放**：`.research/probes/` 仍未跑 W1 / T2 / P1 三条，本轮只算「改动」不算「优化」。
+- 角色名额 8/8 与 `modelSelection: true` 的复算按用户决策暂不处理（`embedded-firmware` 保留；`modelSelection` 保持 true）。
+- `wish-loop` 阶段 6 的 90 天淘汰仍需真实会话验证 `hits:N` 是否会被人记得改（已写「读到就 +1，同一 edit 顺手改」）。
+
+## 0.0.207 — 2026-11-21
+
+**记忆三档 + 常驻预算门禁：把「记下来」和「每请求重付」分开。**
+
+起因是实测：`devteam-agent/memory/` 已堆到 ≈300 KB（`life_window/NOTES.md` 129 KB），常驻 `AGENTS.md` 12,001 B / 62 行——它自己的规则写「≤60 行 / ≤8 KB」，超了 50%，且没有任何门禁拦它。写入量远大于读取量，记忆成了档案而不是熟练。
+
+### 改动
+
+1. `skills/wish-loop`：阶段 6 重写为**记忆三档**——草稿（会话内/`.wish/`，清理时删）→ 候选（`NOTES-YYYY-MM.md`，append-only 按月轮转，grep 命中才读）→ 常驻（项目根 `AGENTS.md`，每请求重付）；晋升条件写死（同类坑第 2 次出现，或实测省 ≥5 步）；条目 schema 带证据 `- [坑] 事实 | ev:<命令或 文件:行> | verified:YYYY-MM-DD | hits:N`，无 `ev:` 不进候选；纠正写 `superseded-by:` 不删原条目；**读侧写成动作**（阶段 0 按技术栈/模块名/报错词 grep，只读命中行 ±3，禁整份读 NOTES）；超 90 天未命中移 `NOTES-archive-YYYY.md`。
+2. `validate.cjs`：新增第 9 项**常驻预算断言**（项目根 `AGENTS.md` 存在时 ≤8192 B 且 ≤60 行，超了直接 FAIL）；流水线断言补 `记忆三档` / `≤60 行 / ≤8 KB`。VERSION → 0.0.207。
+3. 工作区侧同步（不在 bundle 内）：`AGENTS.md` 12,001 B / 62 行 → **7,128 B / 58 行**（-40.6%），12 份 blindspots 索引、折叠经济数字、回放用例与台账全部搬到新建的 `.research/README.md`（候选档，按需 grep），常驻只留三行指针 + 新增「记忆三档」段。
+
+### 已验
+
+- `node dsh-wishcoder-devteam\validate.cjs`：全绿 7 项，`常驻预算: AGENTS.md 7128 B / 58 行`。
+- 负向探针：给 `AGENTS.md` 追加 1.5 KB → `FAIL 常驻预算: AGENTS.md ... > 8192 B`，恢复后回到 `EXIT=0`。
+
+### 未做（写在这里防止当成已做）
+
+- 没接 Hindsight（`hindsight-coding-agents` 已装但 profile 未装配；它解决的是「自动摄入 + 向量检索」，与本次的文件三档是两条路，要用再单开）。
+- 没做 A/B 回放对比（`.research/probes/` 12 条），所以这次只算改动，不算优化。
+
+## 0.0.206 — 2026-11-21
+
+**全插件评审的修复批：规则对撞、失效工具名、过期上限、报告落点、门禁可绕过。** 清单来源是 0.0.205 之后的逐文件评审（P0×5 / P1×9 / P2×5 + 3 条设计层）。
+
+### 改动
+
+1. `cordis.patch.yml`（persona）：输出行加「技能要求的规划/测试报告/纠偏包例外」——常驻 persona 与技能冲突时 persona 赢，必须显式开例外；删掉与 `wish-loop` 阶段 3.5 对撞的「spawn 须≥2 写域」；压缩验证/环境/成本三行腾空间（上限 1000，现约 957）。
+2. `cordis.patch.yml`（tool-web 行）：删 disabled 后遗留的 6 行死 config（`fetch`/`searchTimeoutMs`/`searchMaxResults`/`searchMaxQueries`），注明 v29.3 恢复时要补的键。
+3. `skills/wish-loop`：阶段 3.5 重写为四行判据表（写域 ≥2 且互不相交 → 派；跨 ≥3 写域或 ≥2 轮试错 → 必须派；判据 ≥ 实现或 <30 行 → 自写；耦合同批文件 → 串行），附实测锚点（派 ≈$0.0100/8 请求 vs 自写 ≈$0.0039/4 步）与跨路由无收益说明；阶段 4.7 改为默认派**只读验收子代理**（任务书四样 + 只读声明），lead 自验只余单文件小改豁免且须先写死预期输出；报告改项目根 `TEST-REPORT.md`（不再落 `.wish/`，清理不连带，格式以 acceptance-verifier 为唯一权威）；阶段 1 建 `.wish/.gitignore`（内容 `*`）；maxDepth 改为「上限不是配额」；预算改按段计（>40 步或 >15 min 无绿就交状态）；退化表与自检清单同步。
+4. `skills/acceptance-verifier`：注明正常形态是被 lead 当只读子代理派入、任务书四样；报告路径 `TEST-REPORT.md`；硬规则补「格式唯一权威，wish-loop 只引用」。
+5. `skills/devteam-flow`：角色注册改跑 `node dsh-wishcoder-devteam\validate.cjs`、persona 上限 1000；新增「两套门禁别跑错」（bundle validate vs `.research\validate.cjs` 的 ROOT 不同、互不相通）；`team_task_list` → `list_agents`；`spawn_teammate` → 临时子代理；技能上限说明「只算角色技能」。
+6. `skills/android-app`：`.ps1` 一律 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File`（本机 PATH 无 `pwsh`，实测 `where.exe pwsh` 为空、`$PSVersionTable` 5.1.26100）。
+7. `skills/debug-research`：`web_search` / `web_fetch` 两条合并为「检索整体禁用，按无法核实处理」，定向取证改 `powershell.exe` 写法。
+8. `validate.cjs`：流水线门禁从子串包含改为逐行正则且**跳过注释行**（`//`、`/*`、`<!--`、`;` 开头），验收报告断言改为 `^## 测试报告` 标题 + `TEST-REPORT.md`；VERSION → 0.0.206。
+
+### 已验
+
+- `node D:\agent\dsh-wishcoder-devteam\validate.cjs`：全绿。
+- 负向探针：在技能正文追加注释行 `// 测试报告` 后门禁不再误判通过（关键词只在注释里 → FAIL）。
+
+## 0.0.205 — 2026-11-21
+
+**派发后守注意力、验收必出测试报告、子代理先出规划、收尾清过程件（四项常驻）。**
+
+### 改动
+
+1. `skills/wish-loop`：新增「派发后守注意力」段（派后不追加需求/不换写域、等待期只做不冲突的活、收活核写域与指纹、走偏四信号、纠偏包一行、两次不动就 `interrupt_agent` 接手）；任务书七项 → 八项，第 8 项「开工规划」（≤8 行：做什么 / 工具 / 是否再派 / 改哪些与新增哪些 / 取舍与缺点 / 自检点）；阶段 3 加「少 AI 味」（注释只写代码看不出的约束，不复述流程、不留占位与演示数据）；阶段 4.7 后加「验收必出测试报告」（`.wish/<slug>-report.md` 五段）；阶段 5.5 改硬门禁（不清不算完成），报告列入判据资产保留。
+2. `skills/acceptance-verifier`：新增「测试报告」节（五段 + 半夜证据规则，报告是交付物不是可选项）。
+3. `skills/devteam-flow`：并行分派加「开工规划 + 派后锁范围」；交付格式加测试报告与「交付前清过程件（硬门禁）」。
+4. `cordis.patch.yml`：persona 许愿行加「并出测试报告 / 清过程件 / 子代理先出规划 / 派后锁写域」，改动行加「注释只写为什么」；953 → 982 字符（上限 1000）。
+5. `validate.cjs`：VERSION → 0.0.205；流水线关键词加 `开工规划` / `派发后守注意力` / `测试报告` / `派后锁范围` / `清过程件` / `阶段 5.5`（被整文件重写误删时直接 FAIL）。
+
+### 已验
+
+- `node D:\agent\dsh-wishcoder-devteam\validate.cjs`：全绿（persona 982 字符）。
+- 负向探针：新建临时副本删掉 `测试报告` 关键词 → 流水线断言 FAIL（验证完即删副本）。
+
+## 0.0.204 — 2026-11-21
+
+**子代理下派预算放宽一层：领域 agent 可再派执行子智能体，深度 2 到顶。**
+
+### 改动
+
+1. `cordis.patch.yml`：`delegation/tool-subagent` 增加 `maxDepth: 2`（原先由 dsh-subagent 服务默认 1）。判据在 `dsh-tool-subagent/lib/index.js:521`：`depth < maxDepth` 才放行，故深度 1 的领域子智能体可再派一层，深度 2 被提示「直接做」。
+2. `skills/wish-loop`：五段表段 2 与铁律 3 改为「一域一子智能体，可再下派一层」；任务书注意事项同步（多一层 = 再一次冷前缀，只在该域有 ≥2 个互不相交文件块时用）。
+3. `skills/devteam-flow` / `README.md` / `docs/wishcoder-guide.md`：深度口径同步。
+4. `validate.cjs`：VERSION → 0.0.204；流水线断言把「深度 1」换成「深度 2」，并硬校验 `tool-subagent.maxDepth === 2`（回到 1 会直接 FAIL）。
+
+### 已验
+
+- `node D:\agent\dsh-wishcoder-devteam\validate.cjs`：全绿；负向探针（改回 maxDepth 1）→ FAIL。
+
+## 0.0.203 — 2026-11-21
+
+**许愿改成五段流水线：需求转译 → 分派实现 → 验收专家 → 功能测试 → 真实完成。**
+
+### 改动
+
+1. 新增角色技能 `requirement-translator`（需求转译专家）：短句 → 需求卡 + SPEC + 分派表（任务ID / 领域 agent / 写域白名单 / 关联 AC / blocked_by / 完成判据）；只出文档，不写实现代码。
+2. 新增角色技能 `acceptance-verifier`（验收专家）：指纹冻结核对 → 逐条 AC 证据表 → 越界核对 → 放行/打回；验收放行后再跑一轮功能测试（构建 → 启动 → 3~5 条主路径，含一条错误路径），两关全绿才准上报完成。
+3. `skills/wish-loop`：三段分工 → 五段流水线（表 + 六条铁律）；新增阶段 4.7 验收、阶段 4.8 功能测试；阶段 5 交付加入口条件；阶段 3.5 改为「按分派表整表派」；自检清单 +1 条。
+4. `skills/devteam-flow`：角色路由加两条（requirement-translator / acceptance-verifier）；流水线 7 验证（验收专家只读）/ 8 功能测试 / 9 交付；技能上限 6 → 8。
+5. `skills/verify-harness`：段 1 资产口径改成「段 1（需求转译）写、段 2 只读、段 3 只读不改」。
+6. `cordis.patch.yml`：persona 981 → 952 字符；许愿行改写成五段（需求转译 → 并行子智能体实现 → 验收专家 → 功能测试 → 全绿才报），删「验收：动手前定 A→B」并入范围行；技能行加两个新角色名。
+7. `roles.json`：新增两条 active 角色（`approvedBy: "user"`，evidence 为用户原话），`maxSkills` 6 → 8。
+8. `validate.cjs`：VERSION → 0.0.203；`mustSay` 加「需求转译 / 验收专家 / 功能测试」；`PRESETS.devteam.skills` 加两个新技能。
+9. `package.json` / `README.md` / `docs/wishcoder-guide.md` 同步五段流水线与技能表（10 个）。
+
+### 已验
+
+- `node D:\agent\dsh-wishcoder-devteam\validate.cjs`：全绿。
+
 ## 0.0.202 — 2026-11-21
 
 **README 补子代理配置说明，发 release**。

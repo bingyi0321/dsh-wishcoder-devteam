@@ -55,11 +55,11 @@ description: "排障缩圈、查文档验版本、引用来源。报错/崩溃/�
 1. **本地优先**：代码、注释、锁文件、CHANGELOG、堆栈里的文件名行号、vendor 源码、已落地的依赖源码（`node_modules/`、`site-packages/`、Gradle/Maven 缓存）。
 2. **项目内检索**：`rg -n "关键词" .`、`rg -n "funcName\(" --type py`；先定位符号再读实现，不靠猜。
 3. **本地环境**：`npm ls` / `pip show` / `go version -m` / Gradle 依赖树、`--help`、`man`、安装包内文档，以及直接跑最小脚本实测。本地能跑出结果的，不信任何文档。
-4. **网络检索（本预设已禁用 `web_search`，工具不注册）**：1–3 都查不到时按「无法核实」处理并在结论里标注，不得拿旧资料或臆造顶替；确需网页证据才用 `pwsh` 定向取（`Invoke-WebRequest` 后只 `Select-String` 关键行），只带命中行回来。
-5. **只用摘要，不抓整页**：本预设不注册 `web_fetch`，检索结果只有 markdown 链接 + snippet，**网页全文不进上下文**。摘要不足以确证时按「无法核实原文」处理并在结论里标注；确需某页细节才用 `pwsh` 定向取（`Invoke-WebRequest` 后只 `Select-String` 关键行），只带命中行回来。社区帖只作线索，须被上游源码或实验确认。
+4. **网络（本预设 `tool-web` 为 `disabled`，检索整体禁用）**：挡住它的不是"网没用"，是**凭证**——v22 实测 10 次 `web_search` 有 5 次失败，因为没有 `DEEPSEEK_API_KEY`。所以顺序是：1–3 查不到先按「无法核实」写进结论并标注（不许拿旧资料或臆造顶替）；真要恢复检索就去 `credentials` 配 key、删 `cordis.patch.yml` 里 `tool-web` 的 `disabled` 行，并补回 `fetch: false` 与 `searchMaxResults: 3`（每请求约 +90 tok）。
+5. **无网时的替代查证**（比"我不知道"值钱）：`node_modules/<pkg>/README.md` 与 `*.d.ts`、`site-packages/<pkg>/`、Gradle/Maven 缓存里的 `-sources.jar`、`<tool> --version` 实测、包内 `CHANGELOG.md`。依赖自带的类型定义就是最权威的"文档"，且 0 请求成本。确需某页细节才定向取一次：`powershell.exe -NoProfile -Command "Invoke-WebRequest -Uri URL -UseBasicParsing | Select-String 关键行"`，只带命中行回来，网页全文不进上下文。社区帖只作线索，须被上游源码或实验确认。
 
 ### 检索式与技巧
-- 联网前先在本地 grep 一遍关键词，避免搜已有答案。
+- 取外网前先在本地 grep 一遍关键词，避免取已有答案。
 - 精确报错全文加引号搜索；去掉错误码只搜关键短语；组合 `库名 + 版本 + 错误信息`。
 - 结果按日期倒序看，只留 3 个月内；引用时标注发布日期。
 - 读源码定位：`rg -n "函数名" 依赖目录` → 读调用点 → 看参数校验与默认值。
