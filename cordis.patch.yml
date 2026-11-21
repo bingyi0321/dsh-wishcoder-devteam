@@ -1,4 +1,4 @@
-# dsh-wishcoder-devteam v0.0.201 — 单入口（DevTeam-20 + 许愿模式）
+# dsh-wishcoder-devteam v0.0.202 — 单入口（DevTeam-20 + 许愿模式）
 #
 # 顶层只有一个 preset 行：devteam（order 20）。v0.0.1 的第二个预设 wishcoder(21)
 # 已折叠掉——它 0.0.1 发布后 6.5 小时内 0 次被选（385 个会话头统计：devteam 246 /

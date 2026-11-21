@@ -1,6 +1,6 @@
 # 许愿式编程 · 使用说明
 
-> 适用版本：`dsh-wishcoder-devteam` 0.0.201（预设 `devteam`，技能 `wish-loop` + `verify-harness`）
+> 适用版本：`dsh-wishcoder-devteam` 0.0.202（预设 `devteam`，技能 `wish-loop` + `verify-harness`）
 > 一句话：**你说要什么，它自己定默认值、自己写会失败的验收、自己循环到全绿，最后只报三行。**
 
 ---

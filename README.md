@@ -3,7 +3,7 @@
 > 一个 DSH bundle、**一个**预设：`devteam`（DevTeam-20 · 资深融合开发团队），内置「许愿：」模式。
 > 装一次，改代码和「从零做一个东西」走同一个入口，不用在新建会话时二选一。
 
-- 版本：`0.0.201`
+- 版本：`0.0.202`
 - 类型：DSH agent preset bundle（`dsh.bundle.patch` → `cordis.patch.yml`）
 - 许可：MIT
 - 仓库：`github.com/bingyi0321/dsh-wishcoder-devteam`
@@ -134,6 +134,48 @@ profile `package.json` 删掉那两行 → 重启。预设与技能随 bundle �
 
 **给最终用户看的完整说明**（触发、写法、例子、成本、排障）在 [`docs/wishcoder-guide.md`](docs/wishcoder-guide.md)；下面是技术视图。
 
+### 4.5 子代理配置（跨路由派发）
+
+`subagent` 默认派**和父会话同模型**的子代理；要派不同模型（比如 Pro 主会话派 flash 做实现段），得先给会话写一张**白名单**。
+
+**机制**：派发前读会话级投影 `subagentModelSelectionPolicy`，白名单来自会话日志里的一条 `subagent/model-selection-policy` 事件（`allowedModels: [{provider, model}]`），由官方写者 `@deepseek-ai/dsh-tool-subagent/model-selection-settings` 在新顶层会话创建时写入，子代理会话继承父会话。没有白名单时，显式 `provider`/`model` 必须等于父路由，否则被拒。
+
+**两个改法**（改的是同一份数据）：
+
+| 方式 | 入口 | 生效 |
+| --- | --- | --- |
+| 设置页（推荐） | 侧栏 → Plugins → 子代理模型白名单 | 之后新建的会话 |
+| 配置文件 | profile `cordis.patch.yml` 的 `subagent-model-selection-settings` 行 `config` | 出厂默认，用户层可覆盖 |
+
+出厂默认样例（profile 层，如 `profiles/desktop/cordis.patch.yml` 末尾）：
+
+```yaml
+- id: subagent-model-selection-settings
+  name: '@deepseek-ai/dsh-tool-subagent/model-selection-settings'
+  config:
+    enabled: true
+    allowedModels:
+      - provider: dsh-opencode-go
+        model: deepseek-v4-pro
+      - provider: dsh-opencode-go
+        model: deepseek-v4.1-flash
+```
+
+**两个坑**：
+
+1. **这一行只能挂 profile 层，不能放 preset**——放 preset 会随每条会话重复注册全局服务 `subagentModelSelection`，启动即报 `service "subagentModelSelection" has been registered`，命名空间 serve 不出来、设置页静默消失（0.0.105 的"页面不出现"就是这么来的）。
+2. **配套开关**：`tool-subagent` 行的 `modelSelection` 必须为 `true`，否则调用里传 `provider`/`model` 直接报 `child model selection is disabled for this tool instance`，走不到白名单。
+
+**怎么调用**：`subagent` 时成对传 `provider` + `model`（三样都不传 = 继承父路由，默认）：
+
+```json
+{ "provider": "dsh-opencode-go", "model": "deepseek-v4.1-flash" }
+```
+
+`enabled: true` 而 `allowedModels` 为空会被 Host 拒绝；改完跑 `node dsh-wishcoder-devteam/validate.cjs` 并**开新会话**生效（老会话保留创建时拿到的白名单，改配置对老会话无效）。
+
+完整说明（调用规则 / 验证命令 / 排错表）见 [`route-policy/USAGE.md`](route-policy/USAGE.md)。
+
 ## 5. 技能（8 个）
 
 `skills/` 下 8 个目录，一次性全部可发现（`includeDefaultRoots: false`，只有本包的技能）：
@@ -212,7 +254,7 @@ dsh-wishcoder-devteam/
 - 发版三步：改 `package.json` / `validate.cjs` 里的版本 → `CHANGELOG.md` 记「为什么 / 改动 / 已知取舍」 → 跑门禁 → `git tag v0.0.x` 并推送。
 - 宿主装载以**重启**为准：bundle 列表与预设定义在进程启动时读，改完不重启，新建会话仍用旧定义。
 
-当前版本 `0.0.201` 的变更见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本 `0.0.202` 的变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 10. 已知限制与排障
 

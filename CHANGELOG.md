@@ -2,6 +2,18 @@
 
 本项目的版本号跟随仓库 tag（`v0.0.1` 起）。
 
+## 0.0.202 — 2026-11-21
+
+**README 补子代理配置说明，发 release**。
+
+### 改动
+1. `README.md` 新增 §4.5「子代理配置（跨路由派发）」：白名单机制、两个改法（设置页 / 配置文件）、两个坑（写者只能挂 profile 层、`modelSelection` 开关）、调用方式与生效口径。
+2. 版本 0.0.201 → 0.0.202（package.json / validate.cjs / README / docs / cordis.patch.yml 文件头）。
+3. 打 tag `v0.0.202` 并推送。
+
+### 已验
+- `node dsh-wishcoder-devteam/validate.cjs`：全绿。
+
 ## 0.0.201 — 2026-11-21
 
 **发布 v0.0.201**：把 0.0.103→0.0.106 的累积改动连同版本号一起推到远端，README 版本号对齐。

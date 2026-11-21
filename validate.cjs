@@ -5,7 +5,7 @@
  * 退出 0 = 通过；1 = 失败（逐条打到 stderr）。
  *
  * 覆盖单入口预设（devteam order 20；原 wishcoder(21) 已折叠为「许愿：」路由）的全部硬约束：
- *   1 包清单与版本（0.0.201）、bundle patch 路径存在
+ *   1 包清单与版本（0.0.202）、bundle patch 路径存在
  *   2 顶层只有一个 `- insert:`，里面恰好一个 preset 行（id/name/order 唯一）
  *   3 preset 作用域不得出现内核级服务行（permission / permissionPresets）——
  *     会 `service ... has been registered` → 预设组装失败 → 新建会话直接失败
@@ -24,7 +24,7 @@ const { createRequire } = require('node:module');
 const ROOT = __dirname;
 const PROFILE = 'C:/Users/Administrator/.dsh/profiles/desktop';
 const PKG_NAME = 'dsh-wishcoder-devteam';
-const VERSION = '0.0.201';
+const VERSION = '0.0.202';
 const SKILLS_ROOT = path.join(ROOT, 'skills');
 
 /** 预设白名单：id → 期望配置 */
