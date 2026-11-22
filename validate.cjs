@@ -30,7 +30,7 @@ const { createRequire } = require('node:module');
 const ROOT = __dirname;
 const PROFILE = path.join(process.env.DSH_HOME || path.join(process.env.USERPROFILE || 'C:/Users/Administrator', '.dsh'), 'profiles/desktop').replace(/\\/g, '/');
 const PKG_NAME = 'dsh-wishcoder-devteam';
-const VERSION = '0.0.209';
+const VERSION = '0.0.210';
 const SKILLS_ROOT = path.join(ROOT, 'skills');
 
 /** 预设白名单：id → 期望配置 */
